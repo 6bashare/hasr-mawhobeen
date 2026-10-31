@@ -20,6 +20,8 @@
 <style>[hidden]{display:none!important}body{margin:0}img{max-width:100%}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
 
 
+
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Reem+Kufi:wght@500;600;700&display=swap">
@@ -162,6 +164,7 @@ textarea { width: 100%; border: 1px solid var(--line); background: var(--paper);
 .people .done li { background: var(--pine-soft); color: var(--pine); font-weight: 600; }
 .people .wait li { background: #f6eceb; color: var(--danger); }
 .muted { color: var(--ink-2); font-size: 13.5px; }
+.linkbtn { border: none; background: none; color: var(--ink-2); font-size: 13.5px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; padding: 4px; }
 @media (prefers-reduced-motion: no-preference) { .student { animation: rise .25s ease-out; } @keyframes rise { from { transform: translateY(6px); opacity: .6; } to { transform: none; opacity: 1; } } }
 </style>
 
@@ -196,6 +199,7 @@ textarea { width: 100%; border: 1px solid var(--line); background: var(--paper);
     <div id="students"></div>
     <button type="button" class="add" id="add-student">+ إضافة طالب آخر</button>
     <p class="foot">القرار النهائي للجنة الموهوبين بالمدرسة. المرجع: نموذج رينزولي للموهبة (قدرة، إبداع، التزام بالمهمة) وأدلة موهبة.</p>
+    <p class="foot" style="text-align:center"><button type="button" class="linkbtn" id="open-board" hidden>🔒 لوحة الحصر (لمعلم الموهوبين)</button></p>
   </main>
 
   <main id="view-board" hidden>
@@ -238,7 +242,14 @@ textarea { width: 100%; border: 1px solid var(--line); background: var(--paper);
       <div class="msg" id="part-msg" role="status"></div>
     </section>
 
-    <div class="toolbar"><button type="button" class="btn ghost" id="csv" hidden>تنزيل الجدول (Excel)</button></div>
+    <div class="toolbar">
+      <button type="button" class="btn ghost" id="csv" hidden>تنزيل الجدول (Excel)</button>
+      <span id="backup-tools" hidden style="display:contents">
+        <button type="button" class="btn ghost" id="backup-out">تنزيل نسخة احتياطية</button>
+        <label class="btn ghost" for="backup-in" style="cursor:pointer">استرجاع نسخة<input type="file" id="backup-in" accept=".json,application/json" hidden></label>
+      </span>
+    </div>
+    <p class="hint" id="local-note" hidden></p>
     <div class="tablewrap">
       <table>
         <thead><tr><th>الطالب</th><th>الصف</th><th>المجال</th><th>السمات</th><th>المسار المقترح</th><th>المعلم</th><th>ملاحظة</th><th></th></tr></thead>
@@ -247,6 +258,21 @@ textarea { width: 100%; border: 1px solid var(--line); background: var(--paper);
     </div>
     <p class="hint">المسار المقترح: المواهب الأكاديمية لطلاب أول ثانوي تُرشَّح لمقياس موهبة، ولبقية الصفوف برامج إثرائية وأولمبياد إبداع. المواهب الفنية والأدائية تُرعى بالنشاط والمسابقات، والقيادية بالبرامج القيادية.</p>
   </main>
+</div>
+
+<div class="thanks" id="lock" hidden role="dialog" aria-modal="true" aria-labelledby="lock-title">
+  <div class="thanks-card">
+    <div class="thanks-body" style="padding-top:22px">
+      <h3 id="lock-title" style="font-family:var(--f-display);font-size:22px;margin:0;color:var(--pine)">🔒 لوحة الحصر</h3>
+      <p class="q">خاصة بمعلم الموهوبين. أدخل رمز الدخول.</p>
+      <input type="password" id="lock-code" autocomplete="current-password" placeholder="رمز الدخول" style="width:100%;border:1px solid var(--line);background:var(--paper);border-radius:8px;padding:9px 10px;text-align:center;direction:ltr">
+      <div class="msg" id="lock-msg" role="status"></div>
+      <div class="thanks-actions">
+        <button type="button" class="btn primary" id="lock-ok">دخول</button>
+        <button type="button" class="btn ghost" id="lock-cancel">إلغاء</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="thanks" id="thanks" hidden role="dialog" aria-modal="true" aria-labelledby="th-title">
@@ -479,7 +505,7 @@ textarea { width: 100%; border: 1px solid var(--line); background: var(--paper);
 
   /* ----- Summary, participation, thanks ----- */
   let roster = [];
-  const LINK = "https://claude.ai/artifact/6wSNjY8C2Nvz4vJzBX1B7r";
+  const LINK = "https://hasr-mawhobeen.onrender.com/";
   const canon = (s) => norm(s).replace(/^(الأستاذ|الاستاذ|أستاذ|استاذ|المعلم|أ\.|أ\s)/, "").replace(/[أإآ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي").trim();
   function sameTeacher(a, b) {
     const x = canon(a), y = canon(b); if (!x || !y) return false;
@@ -601,12 +627,14 @@ textarea { width: 100%; border: 1px solid var(--line); background: var(--paper);
     try { await db.collection("nominations").doc(id).delete(); } catch (err) { say("import-msg", "تعذر الحذف.", "err"); }
   });
   $("csv").addEventListener("click", async () => {
-    const dl = await claude.use("downloads");
-    if (!dl) { say("import-msg", "التنزيل غير متاح هنا.", "err"); return; }
+    const dl = window.claude?.use ? await claude.use("downloads") : null;
+    if (!dl && !db?.local) { say("import-msg", "التنزيل غير متاح هنا.", "err"); return; }
     const cols = ["الطالب", "الصف", "المجال", "عدد السمات", "السمات", "المسار المقترح", "المعلم", "المادة", "ملاحظة"];
     const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
     const rows = [...records].sort((a, b) => b.traitCount - a.traitCount).map((r) => [r.student, r.grade, r.areas, `${r.traitCount}/${r.traitMax || 4}`, r.traits, pathsOf(r).join(" + "), r.teacher, r.subject, r.note].map(q).join(","));
-    try { await dl.save({ filename: "حصر_الموهوبين_1448.csv", data: "﻿" + [cols.map(q).join(","), ...rows].join("\r\n") }); }
+    const csv = "﻿" + [cols.map(q).join(","), ...rows].join("\r\n");
+    if (!dl) { saveFile("حصر_الموهوبين_1448.csv", csv, "text/csv;charset=utf-8"); return; }
+    try { await dl.save({ filename: "حصر_الموهوبين_1448.csv", data: csv }); }
     catch (e) { if (e && e.code !== "declined") say("import-msg", "لم يكتمل التنزيل.", "err"); }
   });
 
@@ -617,12 +645,59 @@ textarea { width: 100%; border: 1px solid var(--line); background: var(--paper);
   $("tab-form").addEventListener("click", () => showTab("form"));
   $("tab-board").addEventListener("click", () => showTab("board"));
 
-  (async () => {
-    if (!window.claude?.use) return;
-    const user = await claude.use("user");
-    const owner = user ? await user.isOwner().catch(() => false) : false;
-    if (!owner) return;
-    db = await claude.use("db"); if (!db) return;
+  /* Site mode (outside Claude): board unlocked by passcode, records kept only in this browser */
+  const CODE_HASH = "c8374b116f6e2ffa01aad35aed353e37e3d61f86a48eb5e60f6e1cb7e3982da4";
+  function localDb() {
+    const KEY = "hasr-board-v1";
+    let data = {}; try { data = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) {}
+    data.nominations = data.nominations || {}; data.settings = data.settings || {};
+    const subs = [];
+    const save = () => { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { say("import-msg", "المتصفح رفض الحفظ. لا تستخدم التصفح الخفي للوحة.", "err"); } subs.forEach((f) => f()); };
+    const col = (name) => ({
+      add: async (d) => { data[name]["n" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)] = d; save(); },
+      doc: (k) => ({
+        set: async (d) => { data[name][k] = d; save(); },
+        delete: async () => { delete data[name][k]; save(); },
+        onSnapshot: (fn) => { const f = () => fn({ exists: !!data[name][k], data: () => data[name][k] }); subs.push(f); setTimeout(f, 0); return () => {}; }
+      }),
+      onSnapshot: (fn) => { const f = () => fn({ docs: Object.entries(data[name]).map(([id, d]) => ({ id, data: () => d })) }); subs.push(f); setTimeout(f, 0); return () => {}; }
+    });
+    return {
+      collection: col, local: true,
+      exportJson: () => JSON.stringify({ app: "hasr", savedAt: new Date().toISOString(), nominations: data.nominations, settings: data.settings }),
+      importJson: (json) => { const d = JSON.parse(json); if (!d || typeof d.nominations !== "object") throw new Error("bad"); data = { nominations: d.nominations, settings: d.settings || {} }; save(); }
+    };
+  }
+  function saveFile(name, text, type) {
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name;
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }
+  async function sha256(s) { const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)); return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join(""); }
+  function unlockSite() {
+    db = localDb(); try { sessionStorage.setItem("hasr-unlocked", "1"); } catch (e) {}
+    $("lock").hidden = true; $("open-board").hidden = true; $("backup-tools").hidden = false;
+    $("local-note").hidden = false;
+    $("local-note").textContent = "الترشيحات تُحفظ في هذا المتصفح على جهازك فقط، ولا يراها أحد غيرك. استخدم نفس الجهاز دائماً، ونزّل نسخة احتياطية بين فترة وأخرى.";
+    startBoard(); showTab("board");
+  }
+  async function tryCode() {
+    const v = $("lock-code").value;
+    let ok = false; try { ok = (await sha256(v)) === CODE_HASH; } catch (e) {}
+    if (ok) { $("lock-code").value = ""; say("lock-msg", ""); unlockSite(); }
+    else { say("lock-msg", "الرمز غير صحيح.", "err"); $("lock-code").select(); }
+  }
+  $("open-board").addEventListener("click", () => { $("lock").hidden = false; say("lock-msg", ""); setTimeout(() => $("lock-code").focus(), 50); });
+  $("lock-cancel").addEventListener("click", () => { $("lock").hidden = true; });
+  $("lock-ok").addEventListener("click", tryCode);
+  $("lock-code").addEventListener("keydown", (e) => { if (e.key === "Enter") tryCode(); });
+  $("backup-out").addEventListener("click", () => { if (db?.exportJson) saveFile("نسخة_احتياطية_حصر_الموهوبين.json", db.exportJson(), "application/json"); });
+  $("backup-in").addEventListener("change", async (e) => {
+    const f = e.target.files[0]; if (!f || !db?.importJson) return;
+    try { db.importJson(await f.text()); say("import-msg", "تم استرجاع النسخة الاحتياطية.", "ok"); } catch (err) { say("import-msg", "الملف غير صالح.", "err"); }
+    e.target.value = "";
+  });
+
+  function startBoard() {
     $("tabs").hidden = false; $("save-own").hidden = false;
     let done = false;
     const timer = setTimeout(() => { if (!done) say("import-msg", "تأخر تحميل الجدول. تحقق من الاتصال.", "err"); }, 10000);
@@ -635,6 +710,19 @@ textarea { width: 100%; border: 1px solid var(--line); background: var(--paper);
       if (document.activeElement !== $("roster")) $("roster").value = roster.join("\n");
       renderInsights();
     }, () => {});
+  }
+
+  (async () => {
+    if (!window.claude?.use) {
+      let unlocked = false; try { unlocked = sessionStorage.getItem("hasr-unlocked") === "1"; } catch (e) {}
+      if (unlocked) unlockSite(); else $("open-board").hidden = false;
+      return;
+    }
+    const user = await claude.use("user");
+    const owner = user ? await user.isOwner().catch(() => false) : false;
+    if (!owner) return;
+    db = await claude.use("db"); if (!db) return;
+    startBoard();
   })();
 })();
 </script>
