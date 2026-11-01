@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>استمارة حصر الطلاب الموهوبين – ثانوية الإمام الشاطبي</title>
+<meta name="description" content="رشّح طلابك الموهوبين من جوالك في دقيقة. برنامج رعاية الموهوبين – ثانوية الإمام الشاطبي 1448هـ.">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="ar_SA">
+<meta property="og:title" content="استمارة حصر الطلاب الموهوبين">
+<meta property="og:description" content="ثانوية الإمام الشاطبي · رشّح طلابك الموهوبين من جوالك في دقيقة">
+<meta property="og:url" content="https://hasr-mawhobeen.onrender.com/">
+<meta property="og:image" content="https://hasr-mawhobeen.onrender.com/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://hasr-mawhobeen.onrender.com/og.jpg">
+<meta name="theme-color" content="#0e8f78">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8C%9F%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Reem+Kufi:wght@500;600;700&display=swap">
+<style>
+/* Layout: one short slip for teachers with a sticky send bar; the gifted-program teacher signs in to a second tab, the live nominations board. One bright theme on purpose. */
+:root {
+  color-scheme: light;
+  --paper: #f4faf8; --card: #ffffff; --ink: #1f2e2b; --ink-2: #5c6e69; --line: #dbe9e4;
+  --pine: #0e8f78; --pine-soft: #dff4ee; --gold: #d48a0f; --gold-soft: #fff2d9; --danger: #c2412f;
+  --hero-a: #11a185; --hero-b: #49c2a5;
+  --f-display: "Reem Kufi", "Noto Naskh Arabic", serif;
+  --f-body: "Noto Naskh Arabic", "Amiri", "Times New Roman", serif;
+  --r: 10px;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { direction: rtl; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.7; }
+.wrap { max-width: 680px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 120px; }
+.wrap.wide { max-width: 1000px; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+.mast { display: grid; gap: 4px; padding: 18px 20px 20px; border-radius: 16px; margin-bottom: 16px; background: linear-gradient(135deg, var(--hero-a), var(--hero-b)); color: #fff; position: relative; overflow: hidden; }
+.mast::after { content: ""; position: absolute; left: -40px; bottom: -60px; width: 180px; height: 180px; border-radius: 50%; background: rgba(255,255,255,.12); }
+.mast::before { content: ""; position: absolute; left: 70px; top: -50px; width: 110px; height: 110px; border-radius: 50%; background: rgba(255,214,120,.35); }
+.mast > * { position: relative; z-index: 1; }
+.mast .meta { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 13.5px; color: rgba(255,255,255,.88); }
+.mast h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(26px, 6vw, 34px); line-height: 1.3; margin: 6px 0 0; text-wrap: balance; }
+.mast p { margin: 0; color: rgba(255,255,255,.95); max-width: 60ch; }
+.quote { margin: 10px 0 0; font-family: var(--f-display); font-weight: 600; font-size: 16px; display: flex; gap: 8px; align-items: center; }
+.quote::before { content: ""; width: 26px; height: 2px; background: rgba(255,214,120,.9); border-radius: 2px; flex: none; }
+
+.deadline { display: flex; align-items: center; gap: 10px; background: var(--gold-soft); border: 1px solid #f1d9a6; border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; }
+.deadline .cal { flex: none; width: 44px; text-align: center; border-radius: 8px; background: #fff; border: 1px solid #f1d9a6; overflow: hidden; line-height: 1.2; }
+.deadline .cal b { display: block; background: var(--gold); color: #fff; font-size: 11px; padding: 2px 0; }
+.deadline .cal span { display: block; font-size: 18px; font-weight: 700; color: #8a5800; padding: 2px 0; font-variant-numeric: tabular-nums; }
+.deadline p { margin: 0; font-size: 14.5px; color: #6b4a00; }
+.alert { border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; font-size: 14.5px; background: #fdeceb; color: var(--danger); border: 1px solid #f4c7c1; }
+
+.tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+.tabs button.tab { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 6px 16px; cursor: pointer; font-weight: 600; font-size: 15px; }
+.tabs button.tab[aria-selected="true"] { background: var(--pine); color: #fff; border-color: var(--pine); }
+.tabs .spacer { flex: 1; }
+.live { font-size: 13px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; }
+.live i { width: 8px; height: 8px; border-radius: 50%; background: #b9c6c2; display: inline-block; }
+.live.on i { background: #22b36b; box-shadow: 0 0 0 3px rgba(34,179,107,.18); }
+
+section.block { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; margin-bottom: 14px; }
+.block h2 { font-family: var(--f-display); font-weight: 600; font-size: 18px; margin: 0 0 12px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 520px) { .grid2 { grid-template-columns: 1fr; } }
+label.fld { display: grid; gap: 4px; font-weight: 600; font-size: 15px; min-width: 0; }
+label.fld small { font-weight: 400; color: var(--ink-2); }
+input[type="text"], input[type="email"], input[type="password"], input[type="search"], select, textarea { width: 100%; border: 1px solid var(--line); background: var(--paper); border-radius: 8px; padding: 8px 10px; font-weight: 400; }
+textarea { resize: vertical; }
+input::placeholder, textarea::placeholder { color: var(--ink-2); opacity: .7; }
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+.student { border: 1px solid var(--line); border-radius: var(--r); padding: 14px; margin-bottom: 12px; background: var(--card); display: grid; gap: 12px; }
+.student-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.student-head strong { font-family: var(--f-display); font-weight: 600; font-size: 16px; color: var(--pine); }
+.remove { border: none; background: none; color: var(--danger); cursor: pointer; font-size: 14px; padding: 4px 6px; }
+.row2 { display: grid; grid-template-columns: 1.6fr 1fr .7fr; gap: 10px; }
+@media (max-width: 460px) { .row2 { grid-template-columns: 1.4fr 1fr; } .row2 > :first-child { grid-column: 1 / -1; } }
+.lbl { font-weight: 600; font-size: 15px; margin-bottom: 6px; display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.lbl small { font-weight: 400; color: var(--ink-2); font-size: 13.5px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: var(--paper); border-radius: 999px; padding: 4px 12px; cursor: pointer; font-size: 14.5px; }
+.chip[aria-pressed="true"] { background: var(--gold-soft); border-color: var(--gold); color: #8a5800; font-weight: 700; }
+.traits { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.trait { display: flex; align-items: center; gap: 8px; text-align: right; border: 1px solid var(--line); background: var(--paper); border-radius: 8px; padding: 8px 10px; cursor: pointer; font-size: 15px; font-weight: 600; line-height: 1.4; }
+.trait .box { flex: none; width: 20px; height: 20px; border-radius: 5px; border: 1.5px solid var(--ink-2); display: grid; place-items: center; font-size: 13px; color: transparent; }
+.trait small { display: block; font-weight: 400; font-size: 12.5px; color: var(--ink-2); }
+.trait[aria-pressed="true"] { border-color: var(--pine); background: var(--pine-soft); }
+.trait[aria-pressed="true"] .box { background: var(--pine); border-color: var(--pine); color: #fff; }
+.add { width: 100%; border: 1.5px dashed var(--pine); color: var(--pine); background: var(--pine-soft); border-radius: var(--r); padding: 10px; cursor: pointer; font-weight: 700; font-size: 15.5px; }
+
+.bar { position: fixed; inset: auto 0 0 0; background: var(--card); border-top: 1px solid var(--line); padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); padding-top: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); z-index: 5; }
+.bar-in { max-width: 680px; margin: 0 auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.bar .sum { flex: 1 1 140px; font-size: 14.5px; color: var(--ink-2); min-width: 0; }
+.btn { border: none; border-radius: 8px; padding: 9px 16px; cursor: pointer; font-weight: 700; font-size: 15px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+.btn.primary { background: var(--pine); color: #fff; }
+.btn.ghost { background: var(--pine-soft); color: var(--pine); }
+.btn.small { padding: 5px 10px; font-size: 13.5px; }
+.btn:disabled, .btn[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
+.msg { font-size: 14.5px; }
+.msg:not(:empty) { margin-top: 6px; }
+.msg.err { color: var(--danger); }
+.msg.ok { color: var(--pine); }
+.foot { font-size: 13px; color: var(--ink-2); margin: 6px 2px; }
+.linkbtn { border: none; background: none; color: var(--ink-2); font-size: 13.5px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; padding: 4px; }
+
+/* Dialogs */
+.overlay { position: fixed; inset: 0; background: rgba(20,40,35,.45); display: grid; place-items: center; z-index: 20; padding: 20px max(16px, env(safe-area-inset-right, 0px)) 20px max(16px, env(safe-area-inset-left, 0px)); }
+.card { background: var(--card); border-radius: 18px; max-width: 380px; width: 100%; overflow: hidden; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,.18); }
+.card-top { background: linear-gradient(135deg, var(--hero-a), var(--hero-b)); color: #fff; padding: 22px 18px 18px; }
+.card-top .star { font-size: 38px; line-height: 1; }
+.card-top h3 { font-family: var(--f-display); font-size: 22px; margin: 8px 0 2px; }
+.card-top p { margin: 0; opacity: .95; }
+.card-body { padding: 16px 18px 18px; display: grid; gap: 10px; }
+.card-body .big { font-family: var(--f-display); font-size: 40px; color: var(--pine); line-height: 1; }
+.card-body .q { font-size: 14.5px; color: var(--ink-2); margin: 0; }
+.actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+
+/* Board */
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
+@media (max-width: 620px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+.stat { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 12px; }
+.stat b { display: block; font-family: var(--f-display); font-size: 26px; color: var(--pine); font-variant-numeric: tabular-nums; line-height: 1.2; }
+.stat span { font-size: 13.5px; color: var(--ink-2); }
+.bars { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+.bars h3 { margin: 0 0 6px; font-size: 14.5px; color: var(--ink-2); font-weight: 700; }
+.barrow { display: grid; grid-template-columns: 96px 1fr 26px; gap: 6px; align-items: center; font-size: 13.5px; margin-bottom: 4px; }
+.barrow .track { height: 10px; background: var(--pine-soft); border-radius: 99px; overflow: hidden; }
+.barrow .fill { height: 100%; background: var(--pine); border-radius: 99px; }
+.barrow.art .fill { background: var(--gold); }
+.barrow span:last-child { font-variant-numeric: tabular-nums; font-weight: 700; text-align: left; }
+.progress { height: 12px; background: var(--pine-soft); border-radius: 99px; overflow: hidden; margin: 6px 0 10px; }
+.progress div { height: 100%; background: linear-gradient(90deg, var(--hero-b), var(--hero-a)); border-radius: 99px; transition: width .4s; }
+.people { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 520px) { .people { grid-template-columns: 1fr; } }
+.people h3 { margin: 0 0 6px; font-size: 14.5px; }
+.people ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.people li { border-radius: 999px; padding: 2px 10px; font-size: 13.5px; }
+.people .done li { background: var(--pine-soft); color: var(--pine); font-weight: 600; }
+.people .wait li { background: #f6eceb; color: var(--danger); }
+.muted { color: var(--ink-2); font-size: 13.5px; }
+.toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 12px; align-items: center; }
+.toolbar input[type="search"], .toolbar select { width: auto; flex: 1 1 160px; }
+.hint { font-size: 14px; color: var(--ink-2); margin: 4px 0 8px; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--card); }
+table { width: 100%; border-collapse: collapse; font-size: 14.5px; min-width: 900px; }
+th, td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: right; vertical-align: top; }
+th { background: var(--pine-soft); font-weight: 700; white-space: nowrap; }
+td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pill { display: inline-block; background: var(--gold-soft); color: #8a5800; border-radius: 999px; padding: 0 8px; font-size: 13px; font-weight: 700; margin: 1px 0; }
+.path { display: inline-block; border-radius: 6px; padding: 1px 8px; font-size: 13px; font-weight: 700; margin: 1px 0; background: var(--pine-soft); color: var(--pine); white-space: nowrap; }
+.multi { display: inline-block; background: #e8efff; color: #2f55b5; border-radius: 6px; padding: 0 6px; font-size: 12px; font-weight: 700; margin-top: 2px; }
+.noms { font-size: 13px; color: var(--ink-2); margin: 0; padding-right: 16px; }
+.status { min-width: 150px; font-weight: 600; }
+.status.s0 { background: #eef3f2; } .status.s1 { background: #fff2d9; } .status.s2 { background: #fdeceb; } .status.s3 { background: #dff4ee; }
+.notes { min-width: 170px; min-height: 38px; font-size: 13.5px; }
+.empty { padding: 26px 16px; text-align: center; color: var(--ink-2); }
+.rowdel { border: none; background: none; color: var(--danger); cursor: pointer; font-size: 13.5px; }
+.login { max-width: 420px; margin: 10px auto 0; }
+@media (prefers-reduced-motion: no-preference) { .student { animation: rise .25s ease-out; } @keyframes rise { from { transform: translateY(6px); opacity: .6; } to { transform: none; opacity: 1; } } }
+</style>
+</head>
+<body>
+<div class="wrap" id="wrap">
+  <header class="mast">
+    <div class="meta"><span>ثانوية الإمام الشاطبي · رعاية الموهوبين</span><span>1448هـ</span></div>
+    <h1>استمارة حصر الطلاب الموهوبين</h1>
+    <p>زميلي المعلم: رشّح من فصولك أي طالب متميز، حتى لو ما كان الأعلى درجات. ما تأخذ دقيقة.</p>
+    <div class="quote">خلف كل موهوب معلّمٌ انتبه له</div>
+  </header>
+
+    <div class="deadline" id="deadline">
+    <div class="cal"><b id="dl-month">موعد</b><span id="dl-day">–</span></div>
+    <p id="dl-text">آخر موعد للترشيح قريب</p>
+  </div>
+
+  <nav class="tabs" id="tabs" hidden>
+    <button type="button" class="tab" id="tab-form" aria-selected="true">الاستمارة</button>
+    <button type="button" class="tab" id="tab-board" aria-selected="false">لوحة الحصر</button>
+    <span class="spacer"></span>
+    <span class="live" id="live"><i></i><span id="live-text">جارٍ الاتصال</span></span>
+    <button type="button" class="linkbtn" id="logout">تسجيل الخروج</button>
+  </nav>
+
+  <!-- ================= Teacher form ================= -->
+  <main id="view-form">
+    <section class="block">
+      <div class="grid2">
+        <label class="fld" for="t-name">اسم المعلم<input type="text" id="t-name" autocomplete="name" maxlength="80" placeholder="مثال: أحمد الزهراني"></label>
+        <label class="fld" for="t-subject">المادة<input type="text" id="t-subject" maxlength="60" placeholder="مثال: الرياضيات"></label>
+      </div>
+      <div class="hp" aria-hidden="true"><label for="website">اتركه فارغاً</label><input type="text" id="website" tabindex="-1" autocomplete="off"></div>
+    </section>
+
+    <div id="students"></div>
+    <button type="button" class="add" id="add-student">+ إضافة طالب آخر</button>
+    <p class="foot">القرار النهائي للجنة الموهوبين بالمدرسة. المرجع: نموذج رينزولي للموهبة (قدرة، إبداع، التزام بالمهمة) وأدلة موهبة.</p>
+    <p class="foot" style="text-align:center"><button type="button" class="linkbtn" id="open-board">🔒 لوحة الحصر (لمعلم الموهوبين)</button></p>
+  </main>
+
+  <!-- ================= Login ================= -->
+  <main id="view-login" hidden>
+    <section class="block login">
+      <h2>🔒 دخول لوحة الحصر</h2>
+      <p class="hint">خاصة بمعلم الموهوبين.</p>
+      <form id="login-form" style="display:grid;gap:10px">
+        <input type="text" id="l-user" autocomplete="username" value="admin" hidden>
+        <label class="fld" for="l-pass">كلمة المرور<input type="password" id="l-pass" autocomplete="current-password" dir="ltr" required></label>
+        <div class="actions" style="justify-content:flex-start">
+          <button type="submit" class="btn primary" id="l-btn">دخول</button>
+          <button type="button" class="btn ghost" id="l-back">رجوع للاستمارة</button>
+        </div>
+        <div class="msg" id="login-msg" role="status"></div>
+      </form>
+    </section>
+  </main>
+
+  <!-- ================= Board ================= -->
+  <main id="view-board" hidden>
+    <div class="stats">
+      <div class="stat"><b id="s-students">0</b><span>طالب مرشح</span></div>
+      <div class="stat"><b id="s-noms">0</b><span>ترشيح وصل</span></div>
+      <div class="stat"><b id="s-teachers">0</b><span>معلم شارك</span></div>
+      <div class="stat"><b id="s-first">0</b><span>مرشح لمقياس موهبة</span></div>
+    </div>
+
+    <section class="block">
+      <h2>ملخص للإدارة</h2>
+      <div class="bars" id="bars"><p class="muted">يظهر الملخص بعد وصول أول ترشيح.</p></div>
+      <div class="toolbar"><button type="button" class="btn ghost" id="copy-summary">نسخ الملخص للمدير</button></div>
+      <div class="msg" id="summary-msg" role="status"></div>
+    </section>
+
+    <section class="block">
+      <h2>مشاركة المعلمين</h2>
+      <div id="part-head" class="muted">أدخل أسماء معلمي المدرسة مرة وحدة، وتعرف مين شارك ومين باقي.</div>
+      <div class="progress" id="part-bar-wrap" hidden><div id="part-bar" style="width:0%"></div></div>
+      <div class="people" id="people"></div>
+      <details id="roster-box" style="margin-top:10px">
+        <summary style="cursor:pointer;font-weight:700;color:var(--pine)">قائمة معلمي المدرسة</summary>
+        <p class="hint">اكتب اسم كل معلم في سطر.</p>
+        <textarea id="roster" rows="6" placeholder="أحمد الزهراني&#10;خالد العمري&#10;..."></textarea>
+        <div class="toolbar"><button type="button" class="btn primary" id="save-roster">حفظ القائمة</button></div>
+      </details>
+      <div class="toolbar">
+        <button type="button" class="btn ghost" id="copy-thanks">نسخ رسالة شكر للمشاركين</button>
+        <button type="button" class="btn ghost" id="copy-remind">نسخ تذكير للمتبقين (واتساب)</button>
+      </div>
+      <div class="msg" id="part-msg" role="status"></div>
+    </section>
+
+    <section class="block" style="padding-bottom:10px">
+      <h2>الترشيحات</h2>
+      <div class="toolbar">
+        <input type="search" id="q" placeholder="ابحث باسم الطالب أو المعلم">
+        <select id="f-status"><option value="">كل الحالات</option></select>
+        <button type="button" class="btn ghost" id="xlsx">تصدير إلى Excel</button>
+        <button type="button" class="btn ghost" id="backup">نسخة احتياطية</button>
+      </div>
+      <div class="msg" id="board-msg" role="status"></div>
+    </section>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>الطالب</th><th>الصف</th><th>المجال</th><th>السمات</th><th>المسار المقترح</th><th>المرشِّحون</th><th>الحالة</th><th>ملاحظاتك</th><th></th></tr></thead>
+        <tbody id="rows"><tr><td colspan="9" class="empty">لا توجد ترشيحات بعد. أول ما يرسل معلم ترشيحه بيظهر هنا تلقائياً.</td></tr></tbody>
+      </table>
+    </div>
+    <p class="hint">الطالب المكرر من أكثر من معلم يُحسب مرة واحدة (نفس الاسم ونفس الصف)، وتُحفظ جميع ترشيحاته. المسار المقترح: المواهب الأكاديمية لطلاب أول ثانوي تُرشَّح لمقياس موهبة، ولبقية الصفوف برامج إثرائية وأولمبياد إبداع؛ الفنية والأدائية بالنشاط والمسابقات؛ القيادية بالبرامج القيادية.</p>
+  </main>
+</div>
+
+<!-- Thank-you card -->
+<div class="overlay" id="thanks" hidden role="dialog" aria-modal="true" aria-labelledby="th-title">
+  <div class="card">
+    <div class="card-top">
+      <div class="star">🌟</div>
+      <h3 id="th-title">شكراً لك</h3>
+      <p>ترشيحك وصل وانحفظ في حصر الموهوبين</p>
+    </div>
+    <div class="card-body">
+      <div class="big" id="th-count">0</div>
+      <p class="q" id="th-line">طلاب رشّحتهم اليوم</p>
+      <p class="q" id="th-extra"></p>
+      <p class="q">ربما تكون أنت أول من انتبه لموهبتهم.</p>
+      <div class="actions">
+        <button type="button" class="btn primary" id="th-new">ترشيح طلاب آخرين</button>
+        <button type="button" class="btn ghost" id="th-close">إغلاق</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="bar" id="bar">
+  <div class="bar-in">
+    <div class="sum" id="sum">اكتب اسمك واسم طالب</div>
+    <button type="button" class="btn primary" id="send">إرسال الترشيحات</button>
+  </div>
+  <div class="bar-in"><div class="msg" id="form-msg" role="status" aria-live="polite"></div></div>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>

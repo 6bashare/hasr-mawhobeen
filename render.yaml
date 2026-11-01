@@ -1,0 +1,29 @@
+# نشر حصر الموهوبين على Render (New → Blueprint) — نفس إعداد سوق الشاطبي
+# القرص الدائم يحتاج خطة مدفوعة (Starter) — المجانية لا تدعم الأقراص وتمسح البيانات عند إعادة التشغيل.
+services:
+  - type: web
+    name: hasr-mawhobeen
+    runtime: node
+    region: frankfurt
+    plan: starter
+    buildCommand: echo "no build needed"
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATA_DIR
+        value: /var/data
+      - key: REQUIRE_DISK
+        value: "1"
+      - key: TRUST_PROXY
+        value: "1"
+      - key: SECURE_COOKIES
+        value: "1"
+      - key: ADMIN_PASSWORD
+        sync: false
+    disk:
+      name: hasr-data
+      mountPath: /var/data
+      sizeGB: 1

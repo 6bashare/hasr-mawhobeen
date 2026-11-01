@@ -1,0 +1,15 @@
+{
+  "name": "hasr-mawhobeen",
+  "version": "2.0.0",
+  "description": "استمارة حصر الطلاب الموهوبين — ثانوية الإمام الشاطبي (على نفس فكرة سوق الشاطبي: Node + SQLite على قرص دائم)",
+  "private": true,
+  "main": "server.js",
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server.js",
+    "test": "node --disable-warning=ExperimentalWarning tests/api.test.js && node --disable-warning=ExperimentalWarning tests/persistence.test.js"
+  },
+  "license": "UNLICENSED"
+}

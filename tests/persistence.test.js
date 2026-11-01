@@ -1,0 +1,33 @@
+'use strict';
+/* يتحقق أن الترشيحات والحالات تبقى بعد إيقاف الخادم وإعادة تشغيله، وأن حارس القرص يمنع التشغيل على مجلد مؤقت. */
+const { spawn, spawnSync } = require('node:child_process');
+const fs = require('node:fs'); const os = require('node:os'); const path = require('node:path');
+const assert = require('node:assert/strict');
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hasr-persist-'));
+const PORT = 4000 + Math.floor(Math.random() * 900);
+const env = { ...process.env, DATA_DIR: dir, PORT: String(PORT), ADMIN_PASSWORD: 'persist-test-password', REQUIRE_DISK: '0' };
+const start = () => new Promise((ok) => { const p = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', path.join(__dirname, '..', 'server.js')], { env }); p.stdout.on('data', (d) => /localhost/.test(d) && ok(p)); });
+const stop = (p) => new Promise((x) => { p.on('exit', x); p.kill('SIGTERM'); });
+const H = { 'X-Hasr': '1', 'Content-Type': 'application/json' };
+(async () => {
+  const B = `http://127.0.0.1:${PORT}/api`;
+  let srv = await start();
+  await fetch(B + '/nominations', { method: 'POST', headers: H, body: JSON.stringify({ teacher: 'أحمد الزهراني', subject: 'علوم', students: [{ name: 'طالب الاختبار', grade: 'أول ثانوي', areas: ['علوم'] }] }) });
+  let r = await fetch(B + '/admin/login', { method: 'POST', headers: H, body: JSON.stringify({ password: 'persist-test-password' }) });
+  const cookie = r.headers.get('set-cookie').split(';')[0];
+  const d = await (await fetch(B + '/admin/data', { headers: { Cookie: cookie } })).json();
+  await fetch(B + '/admin/reviews/' + encodeURIComponent(d.nominations[0].student_key), { method: 'PUT', headers: { ...H, Cookie: cookie }, body: JSON.stringify({ status: 'مرشح للمتابعة والرعاية', notes: 'ملاحظة دائمة' }) });
+  await stop(srv);
+  srv = await start();
+  const d2 = await (await fetch(B + '/admin/data', { headers: { Cookie: cookie } })).json();
+  assert.equal(d2.nominations[0].student, 'طالب الاختبار');
+  assert.equal(d2.reviews[0].status, 'مرشح للمتابعة والرعاية');
+  assert.equal(d2.reviews[0].notes, 'ملاحظة دائمة');
+  await stop(srv);
+  console.log('  ✓ الترشيحات والحالات والملاحظات والجلسة باقية بعد إعادة تشغيل الخادم');
+  const g = spawnSync(process.execPath, ['--disable-warning=ExperimentalWarning', path.join(__dirname, '..', 'server.js')], { env: { ...env, REQUIRE_DISK: '1', DATA_DIR: path.join(__dirname, '..', 'data-guard-test') }, timeout: 5000 });
+  fs.rmSync(path.join(__dirname, '..', 'data-guard-test'), { recursive: true, force: true });
+  assert.equal(g.status, 1);
+  console.log('  ✓ حارس القرص يرفض التشغيل إذا لم يكن مجلد البيانات على قرص دائم');
+  fs.rmSync(dir, { recursive: true, force: true });
+})().catch((e) => { console.error('  ✗', e.message); process.exit(1); });
