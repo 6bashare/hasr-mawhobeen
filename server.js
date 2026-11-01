@@ -38,6 +38,8 @@ const SECTIONS = ['', '1', '2'];
 const AREAS = ['علوم', 'رياضيات', 'لغة عربية وأدب', 'لغة إنجليزية', 'تقنية وبرمجة', 'خطابة وإلقاء', 'خط عربي', 'رسم وفنون', 'قيادة'];
 const TRAITS = ['سريع الفهم', 'مبدع', 'مثابر', 'قيادي'];
 const STATUSES = ['جديد', 'قيد المراجعة', 'يحتاج استكمال', 'مرشح للمتابعة والرعاية'];
+const { TALENT_GROUPS, LEVELS, TEACHER_AREA_GROUP, TALENT_GROUP } = require('./public/talents.js');
+const ALL_TALENTS = Object.keys(TALENT_GROUP);
 
 const now = () => Date.now();
 const sha = (s) => crypto.createHash('sha256').update(String(s)).digest('hex');
@@ -84,6 +86,39 @@ CREATE TABLE IF NOT EXISTS student_reviews (
 );
 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS sessions (token_hash TEXT PRIMARY KEY, expires_at INTEGER NOT NULL, created_at INTEGER NOT NULL);
+`);
+/* إضافة مسار «موهبتي تستحق الاكتشاف»: جداول جديدة فقط، ولا يُعدَّل أي جدول قائم.
+   قبل إنشائها أول مرة تُؤخذ نسخة احتياطية تلقائية من قاعدة البيانات الحالية على القرص الدائم. */
+{
+  const hasDisclosures = db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'disclosures'").get();
+  const hasData = db.prepare('SELECT COUNT(*) AS n FROM nominations').get().n > 0;
+  if (!hasDisclosures && hasData) {
+    const stamp = new Date(Date.now() + 3 * 3600e3).toISOString().slice(0, 16).replace(/[T:]/g, '-');
+    const file = path.join(DATA_DIR, `hasr-before-students-${stamp}.db`);
+    db.exec(`VACUUM INTO '${file.replace(/'/g, "''")}'`);
+    console.log(`   🗄️ نسخة احتياطية قبل إضافة مسار الطلاب: ${file}`);
+  }
+}
+db.exec(`
+CREATE TABLE IF NOT EXISTS disclosures (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  created_at   INTEGER NOT NULL,
+  name         TEXT NOT NULL,
+  grade        TEXT NOT NULL,
+  section      TEXT NOT NULL DEFAULT '',
+  talents      TEXT NOT NULL,
+  distinct_text TEXT NOT NULL,
+  achievement  TEXT NOT NULL DEFAULT '',
+  link         TEXT NOT NULL DEFAULT '',
+  name_key     TEXT NOT NULL,
+  linked_key   TEXT,
+  UNIQUE (name_key, grade)
+);
+CREATE TABLE IF NOT EXISTS match_rejections (
+  disclosure_id INTEGER NOT NULL,
+  student_key   TEXT NOT NULL,
+  PRIMARY KEY (disclosure_id, student_key)
+);
 `);
 const stmts = new Map();
 const q = (sql) => { let s = stmts.get(sql); if (!s) { s = db.prepare(sql); stmts.set(sql, s); } return s; };
@@ -194,7 +229,7 @@ route('POST', '/api/nominations', (ctx) => {
   }));
 
   const g = rateHit('send:global', 300, 10 * 60 * 1000);
-  const r = rateHit(`send:${ctx.ip}`, 6, 10 * 60 * 1000);
+  const r = rateHit(`send:${ctx.ip}`, 20, 10 * 60 * 1000); // شبكة المدرسة قد تجمع عدة معلمين على عنوان واحد
   if (r.blocked || g.blocked) fail(429, 'تم الإرسال أكثر من مرة خلال وقت قصير. انتظر 10 دقائق ثم أعد المحاولة', { retryAfter: r.retryAfter });
 
   const tkey = teacherKey(teacher);
@@ -211,6 +246,52 @@ route('POST', '/api/nominations', (ctx) => {
   } catch (e) { db.exec('ROLLBACK'); throw e; }
   if (added) bump();
   return { ok: true, added, duplicates };
+});
+
+/* — الطالب: «موهبتي تستحق الاكتشاف» (بدون دخول) — */
+function cleanLink(v) {
+  const s = String(v ?? '').trim();
+  if (!s) return '';
+  if (s.length > 300) fail(400, 'الرابط طويل جدًا');
+  let u;
+  try { u = new URL(/^https?:\/\//i.test(s) ? s : 'https://' + s); } catch { fail(400, 'الرابط غير صحيح. انسخه كما هو من المتصفح'); }
+  if (!/^https?:$/.test(u.protocol) || !u.hostname.includes('.')) fail(400, 'الرابط غير صحيح. انسخه كما هو من المتصفح');
+  return u.href;
+}
+route('POST', '/api/disclosures', (ctx) => {
+  const b = ctx.body;
+  if (String(b.website || '') !== '') return { ok: true }; // حقل مخفي: بوت
+  const name = text(b.name, { min: 6, max: 80, label: 'الاسم' });
+  if (name.split(' ').length < 3) fail(400, 'اكتب اسمك الرباعي (ثلاثة أسماء على الأقل)');
+  if (!GRADES.includes(b.grade)) fail(400, 'اختر صفك الدراسي');
+  if (!['1', '2'].includes(String(b.section ?? ''))) fail(400, 'اختر فصلك');
+  if (!Array.isArray(b.talents) || b.talents.length < 1) fail(400, 'اختر موهبة واحدة على الأقل');
+  if (b.talents.length > 3) fail(400, 'الحد الأقصى ثلاث مواهب');
+  const seen = new Set();
+  const talents = b.talents.map((t) => {
+    const n = String(t && t.name || '');
+    const level = Number(t && t.level);
+    if (!ALL_TALENTS.includes(n)) fail(400, 'موهبة غير معروفة');
+    if (![1, 2, 3].includes(level)) fail(400, `حدد مستواك في «${n}»`);
+    if (seen.has(n)) fail(400, 'لا تكرر نفس الموهبة');
+    seen.add(n);
+    return { name: n, group: TALENT_GROUP[n], level };
+  });
+  const distinct = text(b.distinct, { min: 10, max: 400, label: 'وصف موهبتك' });
+  const achievement = text(b.achievement, { max: 300, label: 'وصف الإنجاز' });
+  const link = cleanLink(b.link);
+  if (b.consent !== true) fail(400, 'أكّد صحة المعلومات أولًا');
+
+  const g = rateHit('disc:global', 600, 10 * 60 * 1000);
+  const r = rateHit(`disc:${ctx.ip}`, 40, 10 * 60 * 1000); // طلاب فصل كامل قد يرسلون من شبكة المدرسة نفسها
+  if (r.blocked || g.blocked) fail(429, 'وصلتنا مشاركات كثيرة من نفس الشبكة. انتظر دقائق ثم أعد المحاولة', { retryAfter: r.retryAfter });
+
+  const res = q(`INSERT INTO disclosures(created_at, name, grade, section, talents, distinct_text, achievement, link, name_key)
+                 VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(name_key, grade) DO NOTHING`)
+    .run(now(), name, b.grade, String(b.section), JSON.stringify(talents), distinct, achievement, link, normAr(name));
+  if (!res.changes) fail(409, 'وصلتنا مشاركتك من قبل 🌟 إذا تبي تضيف شيئًا كلّم معلم الموهوبين');
+  bump();
+  return { ok: true };
 });
 
 /* — الدخول — */
@@ -246,7 +327,13 @@ function allData() {
     nominations: q('SELECT * FROM nominations ORDER BY created_at DESC').all().map(nominationRow),
     reviews: q('SELECT * FROM student_reviews').all().map((r) => ({ student_key: r.student_key, status: r.status, notes: r.notes })),
     roster: JSON.parse(getSetting('roster', '[]')),
+    disclosures: q('SELECT * FROM disclosures ORDER BY created_at DESC').all().map(disclosureRow),
+    rejections: q('SELECT * FROM match_rejections').all().map((r) => `${r.disclosure_id}|${r.student_key}`),
   };
+}
+function disclosureRow(d) {
+  return { id: d.id, created_at: new Date(d.created_at).toISOString(), name: d.name, grade: d.grade, section: d.section, talents: JSON.parse(d.talents),
+    distinct: d.distinct_text, achievement: d.achievement, link: d.link, linked_key: d.linked_key || null };
 }
 route('GET', '/api/admin/data', (ctx) => { needAdmin(ctx); return allData(); });
 
@@ -277,9 +364,51 @@ route('DELETE', '/api/admin/students/:key', (ctx) => {
   needAdmin(ctx);
   const key = ctx.params.key;
   const r = q('DELETE FROM nominations WHERE student_key = ?').run(key);
+  let d = q('DELETE FROM disclosures WHERE linked_key = ?').run(key).changes;
+  const m = /^d:(\d+)$/.exec(key);
+  if (m) d += q('DELETE FROM disclosures WHERE id = ?').run(Number(m[1])).changes;
   q('DELETE FROM student_reviews WHERE student_key = ?').run(key);
   bump();
-  return { ok: true, deleted: r.changes };
+  return { ok: true, deleted: r.changes + d };
+});
+
+/* — تأكيد أن إفصاح الطالب وترشيح المعلم لنفس الطالب (بموافقة المشرف فقط) — */
+route('POST', '/api/admin/links', (ctx) => {
+  needAdmin(ctx);
+  const id = Number(ctx.body.disclosureId), key = String(ctx.body.studentKey || '');
+  const d = q('SELECT * FROM disclosures WHERE id = ?').get(id);
+  if (!d) fail(404, 'المشاركة غير موجودة');
+  if (!q('SELECT 1 FROM nominations WHERE student_key = ? LIMIT 1').get(key)) fail(404, 'الطالب غير موجود في ترشيحات المعلمين');
+  db.exec('BEGIN');
+  try {
+    q('UPDATE disclosures SET linked_key = ? WHERE id = ?').run(key, id);
+    // ملاحظات المشرف على الإفصاح تنتقل للملف الموحد دون فقدان
+    const own = q('SELECT * FROM student_reviews WHERE student_key = ?').get('d:' + id);
+    if (own) {
+      const target = q('SELECT * FROM student_reviews WHERE student_key = ?').get(key);
+      if (!target) q('UPDATE student_reviews SET student_key = ? WHERE student_key = ?').run(key, 'd:' + id);
+      else {
+        const notes = [target.notes, own.notes].filter(Boolean).join(' | ').slice(0, 1000);
+        q('UPDATE student_reviews SET notes = ?, updated_at = ? WHERE student_key = ?').run(notes, now(), key);
+        q('DELETE FROM student_reviews WHERE student_key = ?').run('d:' + id);
+      }
+    }
+    db.exec('COMMIT');
+  } catch (e) { db.exec('ROLLBACK'); throw e; }
+  bump();
+  return { ok: true };
+});
+route('POST', '/api/admin/links/reject', (ctx) => {
+  needAdmin(ctx);
+  q('INSERT OR IGNORE INTO match_rejections(disclosure_id, student_key) VALUES(?, ?)').run(Number(ctx.body.disclosureId), String(ctx.body.studentKey || ''));
+  bump();
+  return { ok: true };
+});
+route('DELETE', '/api/admin/links/:id', (ctx) => {
+  needAdmin(ctx);
+  q('UPDATE disclosures SET linked_key = NULL WHERE id = ?').run(Number(ctx.params.id));
+  bump();
+  return { ok: true };
 });
 
 route('PUT', '/api/admin/roster', (ctx) => {
@@ -343,34 +472,65 @@ function xlsx(sheets) {
     ...sheets.map((s, i) => ({ name: `xl/worksheets/sheet${i + 1}.xml`, data: sheetXml(s.rows) })),
   ]);
 }
-function pathsOf(areas, grade) {
-  const acad = ['علوم', 'رياضيات', 'لغة عربية وأدب', 'لغة إنجليزية', 'تقنية وبرمجة'], art = ['خطابة وإلقاء', 'خط عربي', 'رسم وفنون'];
+const TRACK_OF = Object.fromEntries(TALENT_GROUPS.map((g) => [g.id, g.track]));
+const GROUP_NAME = Object.fromEntries(TALENT_GROUPS.map((g) => [g.id, g.name]));
+function pathsOf(groups, grade) {
+  const tracks = new Set(groups.map((g) => TRACK_OF[g]));
   const out = [];
-  if (areas.some((a) => acad.includes(a))) out.push(/أول|اول/.test(grade) ? 'ترشيح لمقياس موهبة' : 'برنامج إثرائي / إبداع');
-  if (areas.some((a) => art.includes(a))) out.push('النشاط والمسابقات');
-  if (areas.includes('قيادة')) out.push('برنامج قيادي');
+  if (tracks.has('acad')) out.push(/أول|اول/.test(grade) ? 'ترشيح لمقياس موهبة' : 'برنامج إثرائي / إبداع');
+  if (tracks.has('art')) out.push('النشاط والمسابقات');
+  if (tracks.has('sport')) out.push('النشاط الرياضي');
+  if (tracks.has('lead')) out.push('برنامج قيادي');
   return out.length ? out : ['تحدده اللجنة'];
+}
+const SOURCE_LABEL = { teacher: '🟢 توصية معلم', self: '🟡 إفصاح ذاتي', both: '⭐ إفصاح ذاتي + توصية معلم' };
+const levelLabel = (n) => (LEVELS.find((l) => l.id === n) || {}).short || '';
+/* ملف موحد لكل طالب: ترشيحات المعلمين + إفصاحه الذاتي بعد تأكيد المشرف للتطابق */
+function entities(d) {
+  const map = new Map();
+  for (const n of [...d.nominations].reverse()) {
+    let e = map.get(n.student_key);
+    if (!e) { e = { key: n.student_key, name: n.student, grade: n.grade, section: n.section, areas: new Set(), traits: new Set(), noms: [], discs: [] }; map.set(n.student_key, e); }
+    n.areas.forEach((a) => e.areas.add(a)); n.traits.forEach((t) => e.traits.add(t)); if (!e.section) e.section = n.section; e.noms.push(n);
+  }
+  for (const s of d.disclosures) {
+    let e = s.linked_key && map.get(s.linked_key);
+    if (!e) { e = { key: 'd:' + s.id, name: s.name, grade: s.grade, section: s.section, areas: new Set(), traits: new Set(), noms: [], discs: [] }; map.set(e.key, e); }
+    e.discs.push(s);
+    if (s.name.split(' ').length > e.name.split(' ').length) e.name = s.name;
+    if (!e.section) e.section = s.section;
+  }
+  return [...map.values()].map((e) => {
+    const groups = new Set([...e.areas].map((a) => TEACHER_AREA_GROUP[a]).filter(Boolean));
+    e.discs.forEach((s) => s.talents.forEach((t) => groups.add(t.group)));
+    const source = e.noms.length && e.discs.length ? 'both' : e.noms.length ? 'teacher' : 'self';
+    return { ...e, areas: [...e.areas], traits: [...e.traits], groups: [...groups], source };
+  });
 }
 const pretty = (t) => String(t || '').replace(/^(أ\.|أ\s|الأستاذ|أستاذ)\s*/, '').trim();
 route('GET', '/api/admin/export.xlsx', (ctx) => {
   needAdmin(ctx);
   const d = allData();
   const reviews = Object.fromEntries(d.reviews.map((r) => [r.student_key, r]));
-  const groups = new Map();
-  for (const n of [...d.nominations].reverse()) {
-    let g = groups.get(n.student_key);
-    if (!g) { g = { name: n.student, grade: n.grade, section: n.section, areas: new Set(), traits: new Set(), noms: [] }; groups.set(n.student_key, g); }
-    n.areas.forEach((a) => g.areas.add(a)); n.traits.forEach((t) => g.traits.add(t)); if (!g.section) g.section = n.section; g.noms.push(n);
+  const order = { both: 0, self: 1, teacher: 2 };
+  const ents = entities(d).sort((a, b) => order[a.source] - order[b.source]);
+  const students = [['الطالب', 'المصدر', 'الصف', 'الفصل', 'مجالات المعلمين', 'مواهب الطالب (المستوى)', 'المجموعات', 'المسار المقترح', 'عدد توصيات المعلمين', 'المعلمون', 'ملاحظات المعلمين', 'وصف الطالب لموهبته', 'الإنجاز', 'الشاهد', 'الحالة', 'ملاحظات معلم الموهوبين']];
+  for (const e of ents) {
+    const r = reviews[e.key] || { status: 'جديد', notes: '' };
+    const talents = e.discs.flatMap((s) => s.talents.map((t) => `${t.name} (${levelLabel(t.level)})`));
+    students.push([e.name, SOURCE_LABEL[e.source], e.grade, e.section, e.areas.join('، '), talents.join('، '), e.groups.map((g) => GROUP_NAME[g]).join('، '), pathsOf(e.groups, e.grade).join(' + '),
+      e.noms.length, e.noms.map((n) => pretty(n.teacher)).join('، '), e.noms.filter((n) => n.note).map((n) => `${pretty(n.teacher)}: ${n.note}`).join(' | '),
+      e.discs.map((s) => s.distinct).join(' | '), e.discs.map((s) => s.achievement).filter(Boolean).join(' | '), e.discs.map((s) => s.link).filter(Boolean).join(' '), r.status, r.notes]);
   }
-  const students = [['الطالب', 'الصف', 'الفصل', 'المجال', 'عدد السمات', 'السمات', 'المسار المقترح', 'عدد المرشحين', 'المعلمون', 'ملاحظات المعلمين', 'الحالة', 'ملاحظات معلم الموهوبين']];
-  for (const [key, g] of groups) {
-    const areas = [...g.areas], r = reviews[key] || { status: 'جديد', notes: '' };
-    students.push([g.name, g.grade, g.section, areas.join('، '), g.traits.size, [...g.traits].join('، '), pathsOf(areas, g.grade).join(' + '), g.noms.length,
-      g.noms.map((n) => pretty(n.teacher)).join('، '), g.noms.filter((n) => n.note).map((n) => `${pretty(n.teacher)}: ${n.note}`).join(' | '), r.status, r.notes]);
-  }
+  const ts = (iso) => new Date(Date.parse(iso) + 3 * 3600e3).toISOString().slice(0, 16).replace('T', ' ');
   const all = [['التاريخ', 'المعلم', 'المادة', 'الطالب', 'الصف', 'الفصل', 'المجال', 'السمات', 'ملاحظة']];
-  for (const n of d.nominations) all.push([new Date(Date.parse(n.created_at) + 3 * 3600e3).toISOString().slice(0, 16).replace('T', ' '), n.teacher, n.subject, n.student, n.grade, n.section, n.areas.join('، '), n.traits.join('، '), n.note]);
-  const buf = xlsx([{ name: 'الطلاب', rows: students }, { name: 'كل الترشيحات', rows: all }]);
+  for (const n of d.nominations) all.push([ts(n.created_at), n.teacher, n.subject, n.student, n.grade, n.section, n.areas.join('، '), n.traits.join('، '), n.note]);
+  const discs = [['التاريخ', 'الطالب', 'الصف', 'الفصل', 'الموهبة الأولى', 'الموهبة الثانية', 'الموهبة الثالثة', 'وش يميزه', 'الإنجاز', 'الشاهد', 'مرتبط بترشيح معلم']];
+  for (const s of d.disclosures) {
+    const t = s.talents.map((x) => `${x.name} (${levelLabel(x.level)})`);
+    discs.push([ts(s.created_at), s.name, s.grade, s.section, t[0] || '', t[1] || '', t[2] || '', s.distinct, s.achievement, s.link, s.linked_key ? 'نعم' : 'لا']);
+  }
+  const buf = xlsx([{ name: 'الطلاب', rows: students }, { name: 'إفصاحات الطلاب', rows: discs }, { name: 'ترشيحات المعلمين', rows: all }]);
   ctx.res.writeHead(200, { 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'Cache-Control': 'no-store', 'Content-Length': buf.length,
     'Content-Disposition': `attachment; filename="hasr-1448.xlsx"; filename*=UTF-8''${encodeURIComponent('حصر_الموهوبين_1448.xlsx')}` });
   ctx.res.end(buf);
@@ -463,7 +623,7 @@ async function handle(req, res) {
   }
 
   if (req.method !== 'GET' && req.method !== 'HEAD') { res.statusCode = 405; return res.end(); }
-  if (pathname === '/' || pathname === '/admin' || pathname === '/admin/') return void sendFile(req, res, path.join(PUBLIC_DIR, 'index.html'), 'no-cache');
+  if (pathname === '/' || pathname === '/admin' || pathname === '/admin/' || pathname === '/teacher' || pathname === '/student') return void sendFile(req, res, path.join(PUBLIC_DIR, 'index.html'), 'no-cache');
   const safe = path.normalize(pathname).replace(/^(\.\.[/\\])+/, '');
   const f = path.join(PUBLIC_DIR, safe);
   if (f.startsWith(PUBLIC_DIR + path.sep) && sendFile(req, res, f, 'no-cache')) return;

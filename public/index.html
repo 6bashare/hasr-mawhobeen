@@ -58,8 +58,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .alert { border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; font-size: 14.5px; background: #fdeceb; color: var(--danger); border: 1px solid #f4c7c1; }
 
 .tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
-.tabs button.tab { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 6px 16px; cursor: pointer; font-weight: 600; font-size: 15px; }
-.tabs button.tab[aria-selected="true"] { background: var(--pine); color: #fff; border-color: var(--pine); }
+.tabs button.tab, .viewtabs button.tab { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 6px 16px; cursor: pointer; font-weight: 600; font-size: 15px; }
+.tabs button.tab[aria-selected="true"], .viewtabs button.tab[aria-selected="true"] { background: var(--pine); color: #fff; border-color: var(--pine); }
 .tabs .spacer { flex: 1; }
 .live { font-size: 13px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; }
 .live i { width: 8px; height: 8px; border-radius: 50%; background: #b9c6c2; display: inline-block; }
@@ -163,6 +163,84 @@ td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .empty { padding: 26px 16px; text-align: center; color: var(--ink-2); }
 .rowdel { border: none; background: none; color: var(--danger); cursor: pointer; font-size: 13.5px; }
 .login { max-width: 420px; margin: 10px auto 0; }
+
+/* ===== Home chooser ===== */
+.mast p.lead { font-size: 15.5px; }
+.choose { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+@media (max-width: 620px) { .choose { grid-template-columns: 1fr; } }
+.pick { position: relative; overflow: hidden; display: grid; gap: 6px; text-align: right; border: 1.5px solid var(--line); background: var(--card); border-radius: 16px; padding: 20px 18px 18px; cursor: pointer; transition: transform .15s, box-shadow .15s, border-color .15s; }
+.pick:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(14,143,120,.12); border-color: var(--pine); }
+.pick .ico { width: 54px; height: 54px; border-radius: 16px; display: grid; place-items: center; font-size: 28px; background: var(--pine-soft); }
+.pick.student .ico { background: var(--gold-soft); }
+.pick b { font-family: var(--f-display); font-size: 21px; color: var(--ink); line-height: 1.35; }
+.pick span.sub { color: var(--ink-2); font-size: 14.5px; }
+.pick .go { margin-top: 6px; font-weight: 700; color: var(--pine); font-size: 15px; }
+.pick.student .go { color: #a86a00; }
+.pick.student::after { content: ""; position: absolute; left: -30px; top: -30px; width: 110px; height: 110px; border-radius: 50%; background: rgba(255,214,120,.25); }
+.switch { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: -2px 0 12px; font-size: 14px; color: var(--ink-2); flex-wrap: wrap; }
+.admin-entry { text-align: center; margin-top: 18px; }
+.admin-entry button { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 6px 16px; color: var(--ink-2); cursor: pointer; font-size: 13.5px; }
+
+/* ===== Student wizard ===== */
+.s-hero { border-radius: 16px; padding: 16px 18px; margin-bottom: 14px; background: linear-gradient(135deg, #fff6e3, #fff); border: 1px solid #f1d9a6; }
+.s-hero h2 { font-family: var(--f-display); font-size: 22px; margin: 0 0 4px; color: #8a5800; }
+.s-hero p { margin: 0; color: #6b5a3a; font-size: 14.5px; }
+.steps { display: flex; gap: 6px; margin: 0 0 14px; }
+.steps .st { flex: 1; display: grid; gap: 6px; font-size: 13px; color: var(--ink-2); font-weight: 600; }
+.steps .st i { height: 6px; border-radius: 99px; background: var(--line); display: block; transition: background .3s; }
+.steps .st.on { color: var(--pine); } .steps .st.on i { background: linear-gradient(90deg, var(--hero-b), var(--hero-a)); }
+.step-pane { display: grid; gap: 14px; }
+@media (prefers-reduced-motion: no-preference) { .step-pane { animation: rise .3s ease-out; } }
+.seg { display: flex; gap: 8px; flex-wrap: wrap; }
+.seg button { flex: 1 1 0; min-width: 90px; border: 1.5px solid var(--line); background: var(--card); border-radius: 12px; padding: 10px; cursor: pointer; font-weight: 700; font-size: 15px; }
+.seg button[aria-pressed="true"] { border-color: var(--pine); background: var(--pine-soft); color: var(--pine); }
+.chosen { display: grid; gap: 8px; }
+.chosen-empty { border: 1.5px dashed var(--line); border-radius: 12px; padding: 12px; text-align: center; color: var(--ink-2); font-size: 14px; }
+.ch { border: 1.5px solid var(--gold); background: var(--gold-soft); border-radius: 14px; padding: 10px 12px; display: grid; gap: 8px; }
+.ch-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-weight: 700; color: #6b4a00; }
+.ch-top button { border: none; background: none; color: var(--danger); cursor: pointer; font-size: 13.5px; }
+.lv { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+@media (max-width: 460px) { .lv { grid-template-columns: 1fr; } }
+.lv button { border: 1px solid #ecd5a5; background: #fff; border-radius: 10px; padding: 7px 8px; cursor: pointer; font-size: 13.5px; text-align: right; line-height: 1.4; }
+.lv button[aria-pressed="true"] { border-color: var(--pine); background: var(--pine); color: #fff; font-weight: 700; }
+.counter { font-size: 13.5px; font-weight: 700; color: #a86a00; }
+.groups { display: grid; gap: 10px; }
+.grp { border: 1px solid var(--line); border-radius: 14px; background: var(--card); overflow: hidden; }
+.grp summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 10px 12px; font-weight: 700; }
+.grp summary::-webkit-details-marker { display: none; }
+.grp summary .gi { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; font-size: 20px; background: var(--paper); flex: none; }
+.grp summary .n { margin-inline-start: auto; font-size: 12.5px; color: var(--ink-2); font-weight: 600; }
+.grp summary .n.has { color: #a86a00; }
+.grp[open] summary { border-bottom: 1px solid var(--line); }
+.grp .chips { padding: 10px 12px 12px; }
+.chip:disabled { opacity: .4; cursor: not-allowed; }
+.examples { display: flex; flex-wrap: wrap; gap: 6px; font-size: 13px; color: var(--ink-2); }
+.examples button { border: 1px dashed var(--line); background: var(--paper); border-radius: 999px; padding: 3px 10px; cursor: pointer; font-size: 13px; color: var(--ink-2); }
+.consent { display: flex; gap: 8px; align-items: flex-start; font-size: 14.5px; cursor: pointer; }
+.consent input { width: 18px; height: 18px; margin-top: 4px; accent-color: var(--pine); }
+.charcount { font-size: 12.5px; color: var(--ink-2); text-align: left; }
+
+/* ===== Board: sources ===== */
+.src { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 1px 9px; font-size: 12.5px; font-weight: 700; white-space: nowrap; margin-top: 3px; }
+.src.teacher { background: #e3f6ec; color: #17803f; }
+.src.self { background: #fff2d9; color: #a86a00; }
+.src.both { background: linear-gradient(135deg, #ffe08a, #ffc94a); color: #5a3d00; box-shadow: 0 0 0 1px #f0b93a inset; }
+.stat.click { cursor: pointer; transition: border-color .15s; text-align: right; font: inherit; }
+.stat.click:hover, .stat.click[aria-pressed="true"] { border-color: var(--pine); }
+.stat.star b { color: #c58a00; }
+.chiprow { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.chiprow button { border: 1px solid var(--line); background: var(--paper); border-radius: 999px; padding: 4px 12px; cursor: pointer; font-size: 13.5px; font-weight: 600; }
+.chiprow button[aria-pressed="true"] { background: var(--pine); border-color: var(--pine); color: #fff; }
+.matches { border: 1.5px solid #f1d9a6; background: var(--gold-soft); border-radius: var(--r); padding: 12px 14px; margin-bottom: 14px; display: grid; gap: 8px; }
+.matches h3 { margin: 0; font-size: 15px; color: #8a5800; }
+.match { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; background: #fff; border-radius: 10px; padding: 8px 10px; font-size: 14px; }
+.match .who { min-width: 0; }
+.talent { display: inline-block; background: var(--gold-soft); color: #6b4a00; border-radius: 8px; padding: 1px 8px; font-size: 13px; margin: 1px 0; }
+.disc { margin-top: 4px; font-size: 13px; background: #fffaf0; border-right: 3px solid var(--gold); padding: 4px 8px; border-radius: 4px; color: #4a3b1a; }
+.disc a { color: var(--pine); word-break: break-all; }
+.note-star { font-size: 12.5px; color: var(--ink-2); margin: 0 0 10px; }
+.viewtabs { display: flex; gap: 6px; margin: 0 0 10px; }
+
 @media (prefers-reduced-motion: no-preference) { .student { animation: rise .25s ease-out; } @keyframes rise { from { transform: translateY(6px); opacity: .6; } to { transform: none; opacity: 1; } } }
 </style>
 </head>
@@ -170,26 +248,45 @@ td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
 <div class="wrap" id="wrap">
   <header class="mast">
     <div class="meta"><span>ثانوية الإمام الشاطبي · رعاية الموهوبين</span><span>1448هـ</span></div>
-    <h1>استمارة حصر الطلاب الموهوبين</h1>
-    <p>زميلي المعلم: رشّح من فصولك أي طالب متميز، حتى لو ما كان الأعلى درجات. ما تأخذ دقيقة.</p>
-    <div class="quote">خلف كل موهوب معلّمٌ انتبه له</div>
+    <h1>حصر الطلاب الموهوبين</h1>
+    <p class="lead" id="mast-lead">برنامج رعاية الموهوبين يستقبل توصيات المعلمين، ويفتح الباب للطلاب ليعرّفوا بمواهبهم بأنفسهم.</p>
+    <div class="quote">خلف كل موهوب معلّمٌ انتبه له، وطالبٌ آمن بموهبته</div>
   </header>
 
-    <div class="deadline" id="deadline">
-    <div class="cal"><b id="dl-month">موعد</b><span id="dl-day">–</span></div>
-    <p id="dl-text">آخر موعد للترشيح قريب</p>
-  </div>
-
   <nav class="tabs" id="tabs" hidden>
-    <button type="button" class="tab" id="tab-form" aria-selected="true">الاستمارة</button>
-    <button type="button" class="tab" id="tab-board" aria-selected="false">لوحة الحصر</button>
+    <button type="button" class="tab" id="tab-form" aria-selected="false">الاستمارات</button>
+    <button type="button" class="tab" id="tab-board" aria-selected="true">لوحة الحصر</button>
     <span class="spacer"></span>
     <span class="live" id="live"><i></i><span id="live-text">جارٍ الاتصال</span></span>
     <button type="button" class="linkbtn" id="logout">تسجيل الخروج</button>
   </nav>
 
-  <!-- ================= Teacher form ================= -->
-  <main id="view-form">
+  <!-- ================= Home: choose a path ================= -->
+  <main id="view-home">
+    <div class="choose">
+      <button type="button" class="pick" id="go-teacher">
+        <span class="ico">👨‍🏫</span>
+        <b>أنا معلم<br>أرشّح طالبًا موهوبًا</b>
+        <span class="sub">رشّح من فصولك أي طالب لفت انتباهك. ما تأخذ دقيقة.</span>
+        <span class="go">ابدأ الترشيح ←</span>
+      </button>
+      <button type="button" class="pick student" id="go-student">
+        <span class="ico">✨</span>
+        <b>أنا طالب<br>موهبتي تستحق الاكتشاف</b>
+        <span class="sub">عرّفنا بموهبتك بنفسك في ثلاث خطوات بسيطة.</span>
+        <span class="go">اكتشف موهبتك ←</span>
+      </button>
+    </div>
+    <div class="admin-entry"><button type="button" id="open-board">🔒 لوحة الحصر (لمعلم الموهوبين)</button></div>
+  </main>
+
+  <!-- ================= Teacher form (unchanged) ================= -->
+  <main id="view-form" hidden>
+    <div class="switch"><span>زميلي المعلم: رشّح من فصولك أي طالب متميز، حتى لو ما كان الأعلى درجات.</span><button type="button" class="linkbtn" data-home>← الرجوع للرئيسية</button></div>
+    <div class="deadline" id="deadline">
+      <div class="cal"><b id="dl-month">موعد</b><span id="dl-day">–</span></div>
+      <p id="dl-text">آخر موعد للترشيح قريب</p>
+    </div>
     <section class="block">
       <div class="grid2">
         <label class="fld" for="t-name">اسم المعلم<input type="text" id="t-name" autocomplete="name" maxlength="80" placeholder="مثال: أحمد الزهراني"></label>
@@ -201,7 +298,47 @@ td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
     <div id="students"></div>
     <button type="button" class="add" id="add-student">+ إضافة طالب آخر</button>
     <p class="foot">القرار النهائي للجنة الموهوبين بالمدرسة. المرجع: نموذج رينزولي للموهبة (قدرة، إبداع، التزام بالمهمة) وأدلة موهبة.</p>
-    <p class="foot" style="text-align:center"><button type="button" class="linkbtn" id="open-board">🔒 لوحة الحصر (لمعلم الموهوبين)</button></p>
+  </main>
+
+  <!-- ================= Student: موهبتي تستحق الاكتشاف ================= -->
+  <main id="view-student" hidden>
+    <div class="switch"><span></span><button type="button" class="linkbtn" data-home>← الرجوع للرئيسية</button></div>
+    <div class="s-hero">
+      <h2>موهبتي تستحق الاكتشاف ✨</h2>
+      <p>هذي مو اختبار ولا فيها إجابة صح وخطأ. قل لنا وش تحب وتبدع فيه، وبرنامج رعاية الموهوبين بيتعرّف عليك ويساعدك تطوّر موهبتك.</p>
+    </div>
+    <div class="steps" aria-hidden="true">
+      <div class="st on" data-s="1"><i></i>عرّفنا عليك</div>
+      <div class="st" data-s="2"><i></i>وين تلمع؟</div>
+      <div class="st" data-s="3"><i></i>حدثنا عن موهبتك</div>
+    </div>
+
+    <section class="block step-pane" id="sp1">
+      <label class="fld" for="sd-name">اسمك الرباعي<input type="text" id="sd-name" maxlength="80" autocomplete="name" placeholder="مثال: خالد سعد محمد العتيبي"></label>
+      <div><div class="lbl">صفك الدراسي</div><div class="seg" id="sd-grade"><button type="button" data-v="أول ثانوي" aria-pressed="false">أول ثانوي</button><button type="button" data-v="ثاني ثانوي" aria-pressed="false">ثاني ثانوي</button><button type="button" data-v="ثالث ثانوي" aria-pressed="false">ثالث ثانوي</button></div></div>
+      <div><div class="lbl">فصلك</div><div class="seg" id="sd-section"><button type="button" data-v="1" aria-pressed="false">فصل 1</button><button type="button" data-v="2" aria-pressed="false">فصل 2</button></div></div>
+      <div class="hp" aria-hidden="true"><label for="sd-website">اتركه فارغاً</label><input type="text" id="sd-website" tabindex="-1" autocomplete="off"></div>
+    </section>
+
+    <section class="block step-pane" id="sp2" hidden>
+      <div class="lbl" style="margin:0">مواهبك المختارة <span class="counter" id="sd-count">0 من 3</span></div>
+      <div class="chosen" id="sd-chosen"></div>
+      <div class="lbl" style="margin:4px 0 0">اختر من 1 إلى 3 مواهب <small>اضغط على المجموعة لتظهر مواهبها</small></div>
+      <div class="groups" id="sd-groups"></div>
+    </section>
+
+    <section class="block step-pane" id="sp3" hidden>
+      <label class="fld" for="sd-distinct">وش الشيء اللي يميزك في موهبتك؟
+        <textarea id="sd-distinct" rows="4" maxlength="400" placeholder="مثال: أصمم شعارات وبوسترات لفعاليات المدرسة، وأتعلم برامج التصميم بنفسي من اليوتيوب."></textarea>
+      </label>
+      <div class="examples" id="sd-examples"><span>أفكار تساعدك:</span><button type="button">أتعلمها بنفسي من…</button><button type="button">أكثر شيء أفتخر فيه…</button><button type="button">الناس يطلبون مني…</button></div>
+      <div class="charcount" id="sd-chars">0 / 400</div>
+      <label class="fld" for="sd-ach">إنجاز أو مشاركة <small>(اختياري)</small><input type="text" id="sd-ach" maxlength="300" placeholder="مثال: شاركت في مسابقة الإلقاء على مستوى المدرسة"></label>
+      <label class="fld" for="sd-link">رابط لعمل سابق <small>(اختياري، مثل فيديو أو معرض أعمال)</small><input type="text" id="sd-link" maxlength="300" dir="ltr" inputmode="url" placeholder="https://"></label>
+      <label class="consent" for="sd-consent"><input type="checkbox" id="sd-consent"> <span>أقر بأن المعلومات اللي كتبتها صحيحة وتعبّر عني.</span></label>
+    </section>
+
+    <p class="foot">مشاركتك يطّلع عليها معلم الموهوبين فقط. هذي أداة حصر مدرسية أولية، وليست بديلًا عن مقياس موهبة أو إجراءات الترشيح الرسمية.</p>
   </main>
 
   <!-- ================= Login ================= -->
@@ -214,7 +351,7 @@ td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
         <label class="fld" for="l-pass">كلمة المرور<input type="password" id="l-pass" autocomplete="current-password" dir="ltr" required></label>
         <div class="actions" style="justify-content:flex-start">
           <button type="submit" class="btn primary" id="l-btn">دخول</button>
-          <button type="button" class="btn ghost" id="l-back">رجوع للاستمارة</button>
+          <button type="button" class="btn ghost" id="l-back">رجوع للرئيسية</button>
         </div>
         <div class="msg" id="login-msg" role="status"></div>
       </form>
@@ -224,15 +361,46 @@ td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
   <!-- ================= Board ================= -->
   <main id="view-board" hidden>
     <div class="stats">
-      <div class="stat"><b id="s-students">0</b><span>طالب مرشح</span></div>
-      <div class="stat"><b id="s-noms">0</b><span>ترشيح وصل</span></div>
-      <div class="stat"><b id="s-teachers">0</b><span>معلم شارك</span></div>
-      <div class="stat"><b id="s-first">0</b><span>مرشح لمقياس موهبة</span></div>
+      <div class="stat"><b id="s-students">0</b><span>إجمالي الطلاب</span></div>
+      <button type="button" class="stat click" data-src="teacherAny"><b id="s-tany">0</b><span>رشّحهم المعلمون</span></button>
+      <button type="button" class="stat click" data-src="selfAny"><b id="s-sany">0</b><span>أفصحوا عن مواهبهم</span></button>
+      <button type="button" class="stat click star" data-src="both"><b id="s-both">0</b><span>⭐ إفصاح ذاتي + توصية معلم</span></button>
     </div>
+    <p class="note-star">⭐ تعني أن الطالب أفصح عن موهبته ووصلته توصية معلم، ولا تعني اعتماد موهبته رسميًا أو اجتيازه مقياس موهبة. · <span id="s-extra"></span></p>
+
+    <div class="matches" id="matches" hidden>
+      <h3>🔗 تطابقات محتملة تحتاج تأكيدك</h3>
+      <div id="match-list"></div>
+    </div>
+
+    <section class="block" style="padding-bottom:10px">
+      <div class="viewtabs">
+        <button type="button" class="tab" id="vt-all" aria-selected="true">كل الطلاب</button>
+        <button type="button" class="tab" id="vt-disc" aria-selected="false">إفصاحات الطلاب <span id="vt-disc-n"></span></button>
+      </div>
+      <div class="chiprow" id="f-source"></div>
+      <div class="toolbar">
+        <input type="search" id="q" placeholder="ابحث بالاسم أو الصف أو الفصل (مثال: أول 2)">
+        <select id="f-group"><option value="">كل المواهب والمجالات</option></select>
+        <select id="f-status"><option value="">كل الحالات</option></select>
+      </div>
+      <div class="toolbar" style="margin-top:0">
+        <button type="button" class="btn ghost" id="xlsx">تصدير إلى Excel</button>
+        <button type="button" class="btn ghost" id="backup">نسخة احتياطية</button>
+      </div>
+      <div class="msg" id="board-msg" role="status"></div>
+    </section>
+    <div class="tablewrap">
+      <table>
+        <thead id="thead"></thead>
+        <tbody id="rows"><tr><td class="empty">لا توجد مشاركات بعد. أول ما يرسل معلم ترشيحه أو طالب إفصاحه بيظهر هنا تلقائياً.</td></tr></tbody>
+      </table>
+    </div>
+    <p class="hint">التطابق بين إفصاح الطالب وترشيح المعلم لا يُعتمد إلا بعد تأكيدك، ولا تُحذف أي بيانات عند الربط. المسار المقترح: المواهب الأكاديمية لطلاب أول ثانوي تُرشَّح لمقياس موهبة، ولبقية الصفوف برامج إثرائية؛ الفنية والأدائية بالنشاط والمسابقات؛ الرياضية بالنشاط الرياضي؛ القيادية بالبرامج القيادية.</p>
 
     <section class="block">
       <h2>ملخص للإدارة</h2>
-      <div class="bars" id="bars"><p class="muted">يظهر الملخص بعد وصول أول ترشيح.</p></div>
+      <div class="bars" id="bars"><p class="muted">يظهر الملخص بعد وصول أول مشاركة.</p></div>
       <div class="toolbar"><button type="button" class="btn ghost" id="copy-summary">نسخ الملخص للمدير</button></div>
       <div class="msg" id="summary-msg" role="status"></div>
     </section>
@@ -254,28 +422,10 @@ td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
       </div>
       <div class="msg" id="part-msg" role="status"></div>
     </section>
-
-    <section class="block" style="padding-bottom:10px">
-      <h2>الترشيحات</h2>
-      <div class="toolbar">
-        <input type="search" id="q" placeholder="ابحث باسم الطالب أو المعلم">
-        <select id="f-status"><option value="">كل الحالات</option></select>
-        <button type="button" class="btn ghost" id="xlsx">تصدير إلى Excel</button>
-        <button type="button" class="btn ghost" id="backup">نسخة احتياطية</button>
-      </div>
-      <div class="msg" id="board-msg" role="status"></div>
-    </section>
-    <div class="tablewrap">
-      <table>
-        <thead><tr><th>الطالب</th><th>الصف</th><th>المجال</th><th>السمات</th><th>المسار المقترح</th><th>المرشِّحون</th><th>الحالة</th><th>ملاحظاتك</th><th></th></tr></thead>
-        <tbody id="rows"><tr><td colspan="9" class="empty">لا توجد ترشيحات بعد. أول ما يرسل معلم ترشيحه بيظهر هنا تلقائياً.</td></tr></tbody>
-      </table>
-    </div>
-    <p class="hint">الطالب المكرر من أكثر من معلم يُحسب مرة واحدة (نفس الاسم ونفس الصف)، وتُحفظ جميع ترشيحاته. المسار المقترح: المواهب الأكاديمية لطلاب أول ثانوي تُرشَّح لمقياس موهبة، ولبقية الصفوف برامج إثرائية وأولمبياد إبداع؛ الفنية والأدائية بالنشاط والمسابقات؛ القيادية بالبرامج القيادية.</p>
   </main>
 </div>
 
-<!-- Thank-you card -->
+<!-- Teacher thank-you card -->
 <div class="overlay" id="thanks" hidden role="dialog" aria-modal="true" aria-labelledby="th-title">
   <div class="card">
     <div class="card-top">
@@ -296,7 +446,21 @@ td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
   </div>
 </div>
 
-<div class="bar" id="bar">
+<!-- Student success card -->
+<div class="overlay" id="s-done" hidden role="dialog" aria-modal="true" aria-labelledby="sd-title">
+  <div class="card">
+    <div class="card-top" style="background:linear-gradient(135deg,#f0a92a,#ffd36b);color:#4a3200">
+      <div class="star">🌟</div>
+      <h3 id="sd-title">رائع! وصلت مشاركتك بنجاح 🌟</h3>
+    </div>
+    <div class="card-body">
+      <p class="q" style="font-size:15.5px;color:var(--ink)">موهبتك تستحق الاهتمام، ومشاركتك هي الخطوة الأولى لاكتشاف قدراتك وتطويرها.</p>
+      <div class="actions"><button type="button" class="btn primary" id="sd-close">تم</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="bar" id="bar" hidden>
   <div class="bar-in">
     <div class="sum" id="sum">اكتب اسمك واسم طالب</div>
     <button type="button" class="btn primary" id="send">إرسال الترشيحات</button>
@@ -304,6 +468,16 @@ td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
   <div class="bar-in"><div class="msg" id="form-msg" role="status" aria-live="polite"></div></div>
 </div>
 
+<div class="bar" id="sbar" hidden>
+  <div class="bar-in">
+    <button type="button" class="btn ghost" id="sd-prev" hidden>→ السابق</button>
+    <div class="sum" id="sd-sum">الخطوة 1 من 3</div>
+    <button type="button" class="btn primary" id="sd-next">التالي ←</button>
+  </div>
+  <div class="bar-in"><div class="msg" id="sd-msg" role="status" aria-live="polite"></div></div>
+</div>
+
+<script src="/talents.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>

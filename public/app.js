@@ -142,16 +142,131 @@
   } catch (e) { $("deadline").hidden = true; }
 
   /* ===================== Views ===================== */
-  function show(view) {
-    $("view-form").hidden = view !== "form"; $("view-login").hidden = view !== "login"; $("view-board").hidden = view !== "board";
+  const VIEWS = ["home", "form", "student", "login", "board"];
+  function show(view, push = true) {
+    VIEWS.forEach((v) => { $("view-" + v).hidden = v !== view; });
     $("bar").hidden = view !== "form";
+    $("sbar").hidden = view !== "student";
     $("wrap").classList.toggle("wide", view === "board");
-    $("tab-form").setAttribute("aria-selected", view === "form"); $("tab-board").setAttribute("aria-selected", view === "board");
+    $("tab-form").setAttribute("aria-selected", view !== "board"); $("tab-board").setAttribute("aria-selected", view === "board");
+    if (push) { const h = view === "form" ? "#teacher" : view === "student" ? "#student" : view === "board" ? "#board" : ""; if (location.hash !== h) history.replaceState(null, "", h || location.pathname); }
     window.scrollTo({ top: 0 });
   }
-  $("tab-form").addEventListener("click", () => show("form"));
+  $("go-teacher").addEventListener("click", () => show("form"));
+  $("go-student").addEventListener("click", () => { show("student"); renderStep(); });
+  document.querySelectorAll("[data-home]").forEach((b) => b.addEventListener("click", () => show("home")));
+  $("tab-form").addEventListener("click", () => show("home"));
   $("tab-board").addEventListener("click", () => show("board"));
-  $("l-back").addEventListener("click", () => show("form"));
+  $("l-back").addEventListener("click", () => show("home"));
+  function routeFromHash() {
+    const h = location.hash;
+    if (h === "#teacher") show("form", false);
+    else if (h === "#student") { show("student", false); renderStep(); }
+    else if (h !== "#board") show("home", false);
+  }
+  window.addEventListener("hashchange", routeFromHash);
+
+  /* ===================== Student: موهبتي تستحق الاكتشاف ===================== */
+  const TT = window.HASR_TALENTS;
+  const SD_KEY = "hasr-student-draft-v1";
+  const sBlank = () => ({ step: 1, name: "", grade: "", section: "", talents: [], distinct: "", achievement: "", link: "", consent: false });
+  let sd = sBlank();
+  try { const d = JSON.parse(localStorage.getItem(SD_KEY) || "null"); if (d && Array.isArray(d.talents)) sd = { ...sBlank(), ...d }; } catch (e) {}
+  const sPersist = () => { try { localStorage.setItem(SD_KEY, JSON.stringify(sd)); } catch (e) {} };
+  const groupOf = (t) => TT.TALENT_GROUPS.find((g) => g.id === TT.TALENT_GROUP[t]);
+
+  $("sd-name").value = sd.name; $("sd-distinct").value = sd.distinct; $("sd-ach").value = sd.achievement; $("sd-link").value = sd.link; $("sd-consent").checked = sd.consent;
+  const segInit = (id, field) => {
+    const box = $(id);
+    const paint = () => box.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === sd[field]));
+    box.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; sd[field] = b.dataset.v; paint(); sPersist(); say("sd-msg", ""); });
+    paint();
+  };
+  segInit("sd-grade", "grade"); segInit("sd-section", "section");
+  [["sd-name", "name"], ["sd-distinct", "distinct"], ["sd-ach", "achievement"], ["sd-link", "link"]].forEach(([id, f]) => $(id).addEventListener("input", (e) => { sd[f] = e.target.value; sPersist(); if (f === "distinct") $("sd-chars").textContent = `${e.target.value.length} / 400`; }));
+  $("sd-consent").addEventListener("change", (e) => { sd.consent = e.target.checked; sPersist(); });
+  $("sd-examples").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    const ta = $("sd-distinct"); ta.value = (ta.value ? ta.value.trim() + " " : "") + b.textContent.replace("…", " "); ta.focus(); ta.dispatchEvent(new Event("input"));
+  });
+
+  function renderTalents() {
+    $("sd-count").textContent = `${sd.talents.length} من 3`;
+    $("sd-chosen").innerHTML = sd.talents.length ? sd.talents.map((t, i) => `
+      <div class="ch" data-i="${i}">
+        <div class="ch-top"><span>${groupOf(t.name).icon} ${esc(t.name)}</span><button type="button" data-act="rm">إزالة</button></div>
+        <div class="lv" role="group" aria-label="مستواك في ${esc(t.name)}">${TT.LEVELS.map((l) => `<button type="button" data-lv="${l.id}" aria-pressed="${t.level === l.id}">${l.icon} ${l.label}</button>`).join("")}</div>
+      </div>`).join("") : `<div class="chosen-empty">ما اخترت أي موهبة بعد. افتح مجموعة واضغط على موهبتك 👇</div>`;
+    const full = sd.talents.length >= 3;
+    const openIds = [...document.querySelectorAll("#sd-groups details[open]")].map((d) => d.dataset.g);
+    $("sd-groups").innerHTML = TT.TALENT_GROUPS.map((g) => {
+      const n = sd.talents.filter((t) => TT.TALENT_GROUP[t.name] === g.id).length;
+      return `<details class="grp" data-g="${g.id}"${openIds.includes(g.id) ? " open" : ""}><summary><span class="gi">${g.icon}</span>${g.name}<span class="n${n ? " has" : ""}">${n ? `✓ ${n} مختارة` : `${g.items.length} مواهب`}</span></summary>
+        <div class="chips">${g.items.map((t) => { const on = sd.talents.some((x) => x.name === t); return `<button type="button" class="chip" data-t="${esc(t)}" aria-pressed="${on}"${!on && full ? " disabled" : ""}>${esc(t)}</button>`; }).join("")}</div></details>`;
+    }).join("");
+  }
+  $("sd-groups").addEventListener("click", (e) => {
+    const c = e.target.closest("[data-t]"); if (!c) return;
+    const t = c.dataset.t; const i = sd.talents.findIndex((x) => x.name === t);
+    if (i >= 0) sd.talents.splice(i, 1);
+    else if (sd.talents.length < 3) sd.talents.push({ name: t, level: 0 });
+    sPersist(); renderTalents(); say("sd-msg", sd.talents.length >= 3 ? "اخترت 3 مواهب، الحد الأقصى. حدد مستواك في كل وحدة فوق 👆" : "");
+  });
+  $("sd-chosen").addEventListener("click", (e) => {
+    const ch = e.target.closest(".ch"); if (!ch) return; const t = sd.talents[+ch.dataset.i];
+    if (e.target.closest("[data-act=rm]")) sd.talents.splice(+ch.dataset.i, 1);
+    const lv = e.target.closest("[data-lv]"); if (lv) t.level = +lv.dataset.lv;
+    sPersist(); renderTalents(); say("sd-msg", "");
+  });
+
+  function stepProblem(n) {
+    if (n === 1) {
+      const name = sd.name.replace(/\s+/g, " ").trim();
+      if (name.split(" ").length < 3 || name.length < 6) return "اكتب اسمك الرباعي (ثلاثة أسماء على الأقل)";
+      if (!sd.grade) return "اختر صفك الدراسي";
+      if (!sd.section) return "اختر فصلك";
+    }
+    if (n === 2) {
+      if (!sd.talents.length) return "اختر موهبة واحدة على الأقل";
+      const miss = sd.talents.find((t) => !t.level); if (miss) return `حدد مستواك في «${miss.name}»`;
+    }
+    if (n === 3) {
+      if (sd.distinct.trim().length < 10) return "اكتب جملة عن الشيء اللي يميزك (10 أحرف على الأقل)";
+      if (!sd.consent) return "أكّد صحة المعلومات قبل الإرسال";
+    }
+    return "";
+  }
+  function renderStep() {
+    [1, 2, 3].forEach((n) => { $("sp" + n).hidden = sd.step !== n; });
+    document.querySelectorAll(".steps .st").forEach((el) => el.classList.toggle("on", +el.dataset.s <= sd.step));
+    $("sd-prev").hidden = sd.step === 1;
+    $("sd-next").textContent = sd.step === 3 ? "إرسال مشاركتي 🚀" : "التالي ←";
+    $("sd-sum").textContent = `الخطوة ${sd.step} من 3`;
+    $("sd-chars").textContent = `${sd.distinct.length} / 400`;
+    if (sd.step === 2) renderTalents();
+  }
+  $("sd-prev").addEventListener("click", () => { sd.step = Math.max(1, sd.step - 1); sPersist(); say("sd-msg", ""); renderStep(); window.scrollTo({ top: 0, behavior: "smooth" }); });
+  let sSending = false;
+  $("sd-next").addEventListener("click", async () => {
+    const p = stepProblem(sd.step); if (p) { say("sd-msg", p, "err"); return; }
+    say("sd-msg", "");
+    if (sd.step < 3) { sd.step++; sPersist(); renderStep(); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+    if (sSending) return;
+    sSending = true; $("sd-next").disabled = true; $("sd-next").textContent = "جارٍ الإرسال…";
+    try {
+      const data = await api("POST", "/disclosures", { name: sd.name.trim(), grade: sd.grade, section: sd.section, talents: sd.talents.map((t) => ({ name: t.name, level: t.level })),
+        distinct: sd.distinct.trim(), achievement: sd.achievement.trim(), link: sd.link.trim(), consent: sd.consent, website: $("sd-website").value });
+      if (!data || data.ok !== true) throw new Error("ما انحفظت المشاركة. حاول مرة ثانية.");
+      $("s-done").hidden = false;
+      sd = sBlank(); try { localStorage.removeItem(SD_KEY); } catch (e) {}
+      ["sd-name", "sd-distinct", "sd-ach", "sd-link"].forEach((id) => { $(id).value = ""; }); $("sd-consent").checked = false;
+      document.querySelectorAll("#sd-grade button, #sd-section button").forEach((b) => b.setAttribute("aria-pressed", "false"));
+      renderStep();
+    } catch (err) {
+      say("sd-msg", err.status === 0 || err.status === 400 || err.status === 409 || err.status === 429 ? err.message : "ما انحفظت مشاركتك بسبب خطأ في الخادم. حاول مرة ثانية بعد قليل، وبياناتك باقية في الصفحة.", "err");
+    } finally { sSending = false; $("sd-next").disabled = false; if (sd.step === 3) $("sd-next").textContent = "إرسال مشاركتي 🚀"; }
+  });
+  $("sd-close").addEventListener("click", () => { $("s-done").hidden = true; show("home"); });
 
   /* ===================== Admin: auth ===================== */
   let isAdmin = false;
@@ -167,11 +282,11 @@
     } catch (err) { say("login-msg", err.message, "err"); }
     finally { $("l-btn").disabled = false; }
   });
-  function leaveBoard() { isAdmin = false; stopLive(); $("tabs").hidden = true; $("open-board").parentElement.hidden = false; show("form"); }
+  function leaveBoard() { isAdmin = false; stopLive(); $("tabs").hidden = true; $("open-board").parentElement.hidden = false; show("home"); }
   $("logout").addEventListener("click", async () => { try { await api("POST", "/logout"); } catch (e) {} leaveBoard(); });
 
   /* ===================== Admin: data ===================== */
-  let noms = [], reviews = {}, roster = [], stream = null, pollTimer = null;
+  let noms = [], reviews = {}, roster = [], discs = [], rejections = new Set(), stream = null, pollTimer = null;
   const norm = (s) => String(s || "").replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه").replace(/[\u064B-\u0652\u0640]/g, "").replace(/\s+/g, " ").trim().toLowerCase();
   const canon = (s) => norm(s).replace(/^(الاستاذ|استاذ|المعلم|ا\.)\s*/, "").trim();
   const prettyTeacher = (s) => String(s || "").replace(/^(أ\.|أ\s|الأستاذ|أستاذ)\s*/, "").trim();
@@ -186,6 +301,7 @@
       noms = d.nominations || [];
       reviews = Object.fromEntries((d.reviews || []).map((x) => [x.student_key, x]));
       roster = Array.isArray(d.roster) ? d.roster : [];
+      discs = d.disclosures || []; rejections = new Set(d.rejections || []);
       if (document.activeElement !== $("roster")) $("roster").value = roster.join("\n");
       if ($("board-msg").classList.contains("err")) say("board-msg", "");
       renderAll();
@@ -216,25 +332,42 @@
     setLive(false, "غير متصل");
   }
 
-  /* Group nominations into unique students */
+  /* ملف موحد لكل طالب: ترشيحات المعلمين + إفصاحه الذاتي (يُربط فقط بعد تأكيد المشرف) */
+  const GROUP_BY_ID = Object.fromEntries(TT.TALENT_GROUPS.map((g) => [g.id, g]));
+  const LEVEL_BY_ID = Object.fromEntries(TT.LEVELS.map((l) => [l.id, l]));
+  const SOURCE = { teacher: { cls: "teacher", label: "🟢 توصية معلم" }, self: { cls: "self", label: "🟡 إفصاح ذاتي" }, both: { cls: "both", label: "⭐ إفصاح ذاتي + توصية معلم" } };
   function students() {
     const map = new Map();
     for (const n of noms) {
       let g = map.get(n.student_key);
-      if (!g) { g = { key: n.student_key, name: n.student, grade: n.grade, section: n.section, areas: new Set(), traits: new Set(), noms: [], first: n.created_at }; map.set(n.student_key, g); }
+      if (!g) { g = { key: n.student_key, name: n.student, grade: n.grade, section: n.section, areas: new Set(), traits: new Set(), noms: [], discs: [], first: n.created_at }; map.set(n.student_key, g); }
       (n.areas || []).forEach((a) => g.areas.add(a)); (n.traits || []).forEach((t) => g.traits.add(t));
       if (!g.section && n.section) g.section = n.section;
       g.noms.push(n); if (n.created_at < g.first) g.first = n.created_at;
     }
-    return [...map.values()].map((g) => ({ ...g, areas: [...g.areas], traits: [...g.traits], review: reviews[g.key] || { status: "جديد", notes: "" } }));
+    for (const s of discs) {
+      let g = s.linked_key && map.get(s.linked_key);
+      if (!g) { g = { key: "d:" + s.id, name: s.name, grade: s.grade, section: s.section, areas: new Set(), traits: new Set(), noms: [], discs: [], first: s.created_at }; map.set(g.key, g); }
+      else if (s.name.split(" ").length > g.name.split(" ").length) { g.teacherName = g.name; g.name = s.name; }
+      if (!g.section && s.section) g.section = s.section;
+      g.discs.push(s); if (s.created_at < g.first) g.first = s.created_at;
+    }
+    return [...map.values()].map((g) => {
+      const groups = new Set([...g.areas].map((a) => TT.TEACHER_AREA_GROUP[a]).filter(Boolean));
+      const talents = g.discs.flatMap((s) => s.talents);
+      talents.forEach((t) => groups.add(t.group));
+      const source = g.noms.length && g.discs.length ? "both" : g.noms.length ? "teacher" : "self";
+      return { ...g, areas: [...g.areas], traits: [...g.traits], groups: [...groups], talents, source, review: reviews[g.key] || { status: "جديد", notes: "" } };
+    });
   }
   function pathsOf(g) {
-    const has = (id) => g.areas.some((a) => TRACKS.find((t) => t.id === id).areas.includes(a));
-    const first = String(g.grade || "").includes("أول") || String(g.grade || "").includes("اول");
+    const tracks = new Set(g.groups.map((id) => GROUP_BY_ID[id] && GROUP_BY_ID[id].track));
+    const first = /أول|اول/.test(String(g.grade || ""));
     const out = [];
-    if (has("acad")) out.push(first ? "ترشيح لمقياس موهبة" : "برنامج إثرائي / إبداع");
-    if (has("art")) out.push("النشاط والمسابقات");
-    if (has("lead")) out.push("برنامج قيادي");
+    if (tracks.has("acad")) out.push(first ? "ترشيح لمقياس موهبة" : "برنامج إثرائي / إبداع");
+    if (tracks.has("art")) out.push("النشاط والمسابقات");
+    if (tracks.has("sport")) out.push("النشاط الرياضي");
+    if (tracks.has("lead")) out.push("برنامج قيادي");
     if (!out.length) out.push("تحدده اللجنة");
     return out;
   }
@@ -252,22 +385,65 @@
     return tx[0] === ty[0] && tx.length > 1 && ty.length > 1 && tx[tx.length - 1] === ty[ty.length - 1];
   }
 
-  function renderAll() { renderStats(); renderInsights(); renderTable(); }
+  /* تطابقات محتملة: إفصاح غير مربوط × طالب من ترشيحات المعلمين، بنفس الصف وتشابه الاسم */
+  function nameLike(a, b) {
+    const x = norm(a).split(" "), y = norm(b).split(" ");
+    const [s, l] = x.length <= y.length ? [x, y] : [y, x];
+    if (s.join(" ") === l.join(" ")) return true;
+    if (s.length >= 2 && s.every((w, i) => w === l[i])) return true; // ثلاثي ضمن رباعي
+    return s.length >= 2 && s[0] === l[0] && s[s.length - 1] === l[l.length - 1]; // الاسم الأول + العائلة
+  }
+  function candidates() {
+    const teacherStudents = students().filter((g) => g.noms.length);
+    const out = [];
+    for (const d of discs) {
+      if (d.linked_key) continue;
+      for (const g of teacherStudents) {
+        if (gradeBase(g.grade) !== gradeBase(d.grade)) continue;
+        if (rejections.has(`${d.id}|${g.key}`)) continue;
+        if (nameLike(d.name, g.noms[0].student)) out.push({ d, g });
+      }
+    }
+    return out;
+  }
+  function renderMatches() {
+    const list = candidates();
+    $("matches").hidden = !list.length;
+    $("match-list").innerHTML = list.map(({ d, g }) => `
+      <div class="match" data-d="${d.id}" data-k="${esc(g.key)}">
+        <span class="who">هل <b>${esc(d.name)}</b> <span class="src self">🟡 إفصاح ذاتي</span> هو نفسه <b>${esc(g.noms[0].student)}</b> <span class="src teacher">🟢 توصية ${g.noms.length > 1 ? g.noms.length + " معلمين" : "معلم"}</span>؟ <small class="muted">(${esc(d.grade)}${d.section ? " / " + esc(d.section) : ""} · ${esc(g.grade || "-")}${g.section ? " / " + esc(g.section) : ""})</small></span>
+        <span class="actions"><button type="button" class="btn primary small" data-act="link">نعم، نفس الطالب</button><button type="button" class="btn ghost small" data-act="nolink">لا، طالبان مختلفان</button></span>
+      </div>`).join("");
+  }
+  $("match-list").addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-act]"); if (!b) return; const m = b.closest(".match");
+    const body = { disclosureId: +m.dataset.d, studentKey: m.dataset.k };
+    try {
+      await api("POST", b.dataset.act === "link" ? "/admin/links" : "/admin/links/reject", body);
+      say("board-msg", b.dataset.act === "link" ? "تم ربط الإفصاح بترشيحات المعلم في ملف واحد ⭐" : "تم. لن يظهر هذا الاقتراح مرة ثانية.", "ok");
+      scheduleReload();
+    } catch (err) { say("board-msg", err.message, "err"); }
+  });
+
+  function renderAll() { renderStats(); renderMatches(); renderInsights(); renderFilters(); renderTable(); }
   function renderStats() {
     const st = students();
+    const c = { teacher: 0, self: 0, both: 0 }; st.forEach((g) => c[g.source]++);
     $("s-students").textContent = st.length;
-    $("s-noms").textContent = noms.length;
-    $("s-teachers").textContent = teacherCounts().length;
-    $("s-first").textContent = st.filter((g) => pathsOf(g).includes("ترشيح لمقياس موهبة")).length;
+    $("s-tany").textContent = c.teacher + c.both;
+    $("s-sany").textContent = c.self + c.both;
+    $("s-both").textContent = c.both;
+    $("s-extra").textContent = `ترشيحات وصلت ${noms.length} · معلمون شاركوا ${teacherCounts().length} · مرشحون لمقياس موهبة ${st.filter((g) => pathsOf(g).includes("ترشيح لمقياس موهبة")).length}`;
+    $("vt-disc-n").textContent = `(${discs.length})`;
   }
   function renderInsights() {
     const st = students();
-    const artSet = new Set(TRACKS.find((t) => t.id === "art").areas);
-    const groups = [["حسب المجال", tally(st.flatMap((g) => g.areas))], ["حسب الصف", tally(st.map((g) => gradeBase(g.grade)))], ["المسار المقترح", tally(st.flatMap(pathsOf))], ["حالة المراجعة", tally(st.map((g) => g.review.status))]];
+    const groupName = (id) => (GROUP_BY_ID[id] || {}).name || id;
+    const groups = [["حسب مصدر المشاركة", tally(st.map((g) => SOURCE[g.source].label))], ["حسب مجموعة الموهبة", tally(st.flatMap((g) => g.groups.map(groupName)))], ["حسب الصف", tally(st.map((g) => gradeBase(g.grade)))], ["المسار المقترح", tally(st.flatMap(pathsOf))], ["حالة المراجعة", tally(st.map((g) => g.review.status))]];
     $("bars").innerHTML = st.length ? groups.map(([title, rows]) => {
       const max = Math.max(1, ...rows.map((r) => r[1]));
-      return `<div><h3>${title}</h3>${rows.map(([k, v]) => `<div class="barrow${artSet.has(k) || k === "النشاط والمسابقات" ? " art" : ""}"><span>${esc(k)}</span><div class="track"><div class="fill" style="width:${(v / max) * 100}%"></div></div><span>${v}</span></div>`).join("")}</div>`;
-    }).join("") : `<p class="muted">يظهر الملخص بعد وصول أول ترشيح.</p>`;
+      return `<div><h3>${title}</h3>${rows.map(([k, v]) => `<div class="barrow${/إفصاح|النشاط|الفنون|الإعلام|الإلقاء/.test(k) ? " art" : ""}"><span>${esc(k)}</span><div class="track"><div class="fill" style="width:${(v / max) * 100}%"></div></div><span>${v}</span></div>`).join("")}</div>`;
+    }).join("") : `<p class="muted">يظهر الملخص بعد وصول أول مشاركة.</p>`;
 
     const tc = teacherCounts();
     if (roster.length) {
@@ -285,31 +461,59 @@
     }
   }
 
+  /* الفلاتر: المصدر + المجموعة/الموهبة + الحالة + البحث، وعرضان: كل الطلاب / إفصاحات الطلاب */
+  let fSource = "", view2 = "all";
   $("f-status").innerHTML += STATUSES.map((s) => `<option>${s}</option>`).join("");
+  $("f-group").innerHTML += TT.TALENT_GROUPS.map((g) => `<optgroup label="${g.icon} ${g.name}"><option value="g:${g.id}">كل ${g.name}</option>${g.items.map((t) => `<option value="t:${esc(t)}">${esc(t)}</option>`).join("")}</optgroup>`).join("");
+  function renderFilters() {
+    const st = students(); const c = { teacher: 0, self: 0, both: 0 }; st.forEach((g) => c[g.source]++);
+    const opts = [["", `الكل (${st.length})`], ["teacher", `🟢 توصية معلم (${c.teacher})`], ["self", `🟡 إفصاح ذاتي (${c.self})`], ["both", `⭐ الاثنين (${c.both})`]];
+    $("f-source").innerHTML = opts.map(([v, l]) => `<button type="button" data-v="${v}" aria-pressed="${fSource === v}">${l}</button>`).join("");
+    document.querySelectorAll(".stat.click").forEach((b) => b.setAttribute("aria-pressed", b.dataset.src === fSource));
+  }
+  $("f-source").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; fSource = b.dataset.v; renderFilters(); renderTable(); });
+  document.querySelectorAll(".stat.click").forEach((b) => b.addEventListener("click", () => { fSource = fSource === b.dataset.src ? "" : b.dataset.src; renderFilters(); renderTable(); $("thead").scrollIntoView({ behavior: "smooth", block: "center" }); }));
+  $("vt-all").addEventListener("click", () => { view2 = "all"; $("vt-all").setAttribute("aria-selected", "true"); $("vt-disc").setAttribute("aria-selected", "false"); renderTable(); });
+  $("vt-disc").addEventListener("click", () => { view2 = "disc"; $("vt-disc").setAttribute("aria-selected", "true"); $("vt-all").setAttribute("aria-selected", "false"); renderTable(); });
   $("q").addEventListener("input", renderTable);
   $("f-status").addEventListener("change", renderTable);
+  $("f-group").addEventListener("change", renderTable);
+
+  const srcBadge = (g) => `<span class="src ${SOURCE[g.source].cls}">${SOURCE[g.source].label}</span>`;
+  const talentHtml = (t) => `<span class="talent">${(GROUP_BY_ID[t.group] || {}).icon || ""} ${esc(t.name)} ${LEVEL_BY_ID[t.level] ? LEVEL_BY_ID[t.level].icon : ""}</span>`;
+  const linkHtml = (u) => { if (!u) return ""; let host = u; try { host = new URL(u).hostname.replace(/^www\./, ""); } catch (e) {} return `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">🔗 ${esc(host)}</a>`; };
+  const statusCell = (g) => { const si = STATUSES.indexOf(g.review.status); return `<td><select class="status s${si < 0 ? 0 : si}" data-act="status" aria-label="حالة ${esc(g.name)}">${STATUSES.map((s) => `<option${s === g.review.status ? " selected" : ""}>${s}</option>`).join("")}</select></td>`; };
+  const notesCell = (g) => `<td><textarea class="notes" data-act="notes" maxlength="1000" rows="2" aria-label="ملاحظات ${esc(g.name)}" placeholder="أضف ملاحظة">${esc(g.review.notes || "")}</textarea></td>`;
+  const nameCell = (g) => `<td><b>${esc(g.name)}</b>${g.teacherName ? `<br><small class="muted">باسم المعلم: ${esc(g.teacherName)}</small>` : ""}<br>${srcBadge(g)}${g.noms.length > 1 ? ` <span class="multi">${g.noms.length} معلمين</span>` : ""}${g.discs.some((d) => d.linked_key) ? `<br><button type="button" class="linkbtn" data-act="unlink" data-d="${g.discs.find((d) => d.linked_key).id}" style="font-size:12px">فك الربط</button>` : ""}</td>`;
   function renderTable() {
-    const q = norm($("q").value); const fs = $("f-status").value;
-    const order = (g) => STATUSES.indexOf(g.review.status);
-    const st = students()
+    const q = norm($("q").value); const fs = $("f-status").value; const fg = $("f-group").value;
+    let st = students();
+    if (view2 === "disc") st = st.filter((g) => g.discs.length);
+    st = st
+      .filter((g) => !fSource || (fSource === "teacherAny" ? g.source !== "self" : fSource === "selfAny" ? g.source !== "teacher" : g.source === fSource))
       .filter((g) => !fs || g.review.status === fs)
-      .filter((g) => !q || norm(g.name).includes(q) || g.noms.some((n) => norm(n.teacher).includes(q)))
-      .sort((a, b) => (b.noms.length - a.noms.length) || (b.traits.length - a.traits.length) || String(b.first).localeCompare(String(a.first)));
-    if (!st.length) { $("rows").innerHTML = `<tr><td colspan="9" class="empty">${noms.length ? "لا توجد نتائج مطابقة." : "لا توجد ترشيحات بعد. أول ما يرسل معلم ترشيحه بيظهر هنا تلقائياً."}</td></tr>`; return; }
-    $("rows").innerHTML = st.map((g) => {
-      const si = STATUSES.indexOf(g.review.status);
-      return `<tr data-key="${esc(g.key)}">
-        <td><b>${esc(g.name)}</b>${g.noms.length > 1 ? `<br><span class="multi">مرشح من ${g.noms.length} معلمين</span>` : ""}</td>
-        <td>${esc(g.grade || "-")}${g.section ? ` / ${esc(g.section)}` : ""}</td>
-        <td>${g.areas.length ? g.areas.map((a) => `<span class="pill">${esc(a)}</span>`).join(" ") : "-"}</td>
-        <td class="num"><b>${g.traits.length}</b>/4${g.traits.length ? `<br><small>${esc(g.traits.join("، "))}</small>` : ""}</td>
+      .filter((g) => !fg || (fg.startsWith("g:") ? g.groups.includes(fg.slice(2)) : g.talents.some((t) => t.name === fg.slice(2))))
+      .filter((g) => !q || q.split(" ").every((w) => norm(`${g.name} ${g.teacherName || ""} ${g.grade} ${g.section} فصل${g.section} ${g.noms.map((n) => n.teacher).join(" ")}`).includes(w)))
+      .sort((a, b) => ({ both: 0, self: 1, teacher: 2 }[a.source] - { both: 0, self: 1, teacher: 2 }[b.source]) || (b.noms.length - a.noms.length) || String(b.first).localeCompare(String(a.first)));
+    const cols = view2 === "disc"
+      ? ["الطالب", "الصف", "المواهب ومستواها", "وش يميزه", "الإنجاز", "الشاهد", "الحالة", "ملاحظاتك", ""]
+      : ["الطالب", "الصف", "المواهب والمجالات", "المسار المقترح", "التوصيات والإفصاح", "الحالة", "ملاحظاتك", ""];
+    $("thead").innerHTML = `<tr>${cols.map((c) => `<th>${c}</th>`).join("")}</tr>`;
+    if (!st.length) { $("rows").innerHTML = `<tr><td colspan="${cols.length}" class="empty">${noms.length || discs.length ? "لا توجد نتائج مطابقة." : "لا توجد مشاركات بعد. أول ما يرسل معلم ترشيحه أو طالب إفصاحه بيظهر هنا تلقائياً."}</td></tr>`; return; }
+    const grade = (g) => `<td>${esc(g.grade || "-")}${g.section ? ` / ${esc(g.section)}` : ""}</td>`;
+    const del = `<td><button type="button" class="rowdel" data-act="delete">حذف</button></td>`;
+    $("rows").innerHTML = st.map((g) => view2 === "disc" ? `<tr data-key="${esc(g.key)}">
+        ${nameCell(g)}${grade(g)}
+        <td>${g.talents.map(talentHtml).join("<br>")}</td>
+        <td style="min-width:200px">${g.discs.map((d) => esc(d.distinct)).join("<hr>")}</td>
+        <td style="min-width:140px">${g.discs.map((d) => esc(d.achievement)).filter(Boolean).join("<hr>") || '<span class="muted">-</span>'}</td>
+        <td>${g.discs.map((d) => linkHtml(d.link)).filter(Boolean).join("<br>") || '<span class="muted">-</span>'}</td>
+        ${statusCell(g)}${notesCell(g)}${del}</tr>` : `<tr data-key="${esc(g.key)}">
+        ${nameCell(g)}${grade(g)}
+        <td>${g.areas.map((a) => `<span class="pill">${esc(a)}</span>`).join(" ")}${g.areas.length && g.talents.length ? "<br>" : ""}${g.talents.map(talentHtml).join(" ")}${!g.areas.length && !g.talents.length ? "-" : ""}</td>
         <td>${pathsOf(g).map((p) => `<span class="path">${esc(p)}</span>`).join("<br>")}</td>
-        <td><ul class="noms">${g.noms.map((n) => `<li>${esc(prettyTeacher(n.teacher))}${n.subject ? ` (${esc(n.subject)})` : ""}${n.note ? `: ${esc(n.note)}` : ""}</li>`).join("")}</ul></td>
-        <td><select class="status s${si < 0 ? 0 : si}" data-act="status" aria-label="حالة ${esc(g.name)}">${STATUSES.map((s) => `<option${s === g.review.status ? " selected" : ""}>${s}</option>`).join("")}</select></td>
-        <td><textarea class="notes" data-act="notes" maxlength="1000" rows="2" aria-label="ملاحظات ${esc(g.name)}" placeholder="أضف ملاحظة">${esc(g.review.notes || "")}</textarea></td>
-        <td><button type="button" class="rowdel" data-act="delete">حذف</button></td>
-      </tr>`;
-    }).join("");
+        <td style="min-width:220px">${g.noms.length ? `<ul class="noms">${g.noms.map((n) => `<li>${esc(prettyTeacher(n.teacher))}${n.subject ? ` (${esc(n.subject)})` : ""}${n.note ? `: ${esc(n.note)}` : ""}</li>`).join("")}</ul>` : ""}${g.discs.map((d) => `<div class="disc"><b>يقول الطالب:</b> ${esc(d.distinct)}${d.achievement ? `<br><b>إنجاز:</b> ${esc(d.achievement)}` : ""}${d.link ? `<br>${linkHtml(d.link)}` : ""}</div>`).join("")}</td>
+        ${statusCell(g)}${notesCell(g)}${del}</tr>`).join("");
   }
 
   async function saveReview(key, patch) {
@@ -324,12 +528,16 @@
     } catch (err) { say("board-msg", "ما انحفظ التعديل. تحقق من الاتصال وحاول مرة ثانية.", "err"); }
   });
   $("rows").addEventListener("click", async (e) => {
+    if (e.target.dataset.act === "unlink") {
+      try { await api("DELETE", "/admin/links/" + e.target.dataset.d); say("board-msg", "تم فك الربط، وعاد الملفان منفصلين.", "ok"); scheduleReload(); } catch (err) { say("board-msg", err.message, "err"); }
+      return;
+    }
     if (e.target.dataset.act !== "delete") return;
     const btn = e.target; const key = btn.closest("tr").dataset.key;
     if (btn.dataset.confirm !== "1") { btn.dataset.confirm = "1"; btn.textContent = "تأكيد الحذف"; setTimeout(() => { if (btn.isConnected) { btn.dataset.confirm = ""; btn.textContent = "حذف"; } }, 3000); return; }
     try {
       await api("DELETE", "/admin/students/" + encodeURIComponent(key));
-      say("board-msg", "تم حذف الطالب وترشيحاته.", "ok"); scheduleReload();
+      say("board-msg", "تم حذف الطالب ومشاركاته.", "ok"); scheduleReload();
     } catch (err) { say("board-msg", "تعذر الحذف.", "err"); }
   });
 
@@ -346,15 +554,16 @@
     if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(ok, fallback); else fallback();
   }
   $("copy-summary").addEventListener("click", () => {
-    const st = students(); if (!st.length) { say("summary-msg", "ما فيه ترشيحات بعد.", "err"); return; }
+    const st = students(); if (!st.length) { say("summary-msg", "ما فيه مشاركات بعد.", "err"); return; }
     const tc = teacherCounts(); const line = (rows) => rows.map(([k, v]) => `${k} ${v}`).join("، ");
     const doneN = roster.filter((n) => tc.some((t) => sameTeacher(t.name, n))).length;
     const part = roster.length ? `${doneN} من ${roster.length} معلم (${Math.round(doneN / roster.length * 100)}%)` : `${tc.length} معلم`;
     copyText([
       "ملخص حصر الطلاب الموهوبين – ثانوية الإمام الشاطبي 1448هـ",
-      `عدد الطلاب المرشحين: ${st.length} (من ${noms.length} ترشيح)`,
+      `إجمالي الطلاب: ${st.length} (ترشيحات المعلمين ${noms.length}، إفصاحات الطلاب ${discs.length})`,
+      `حسب المصدر: ${line(tally(st.map((g) => SOURCE[g.source].label)))}`,
       `المعلمون المشاركون: ${part}`,
-      `حسب المجال: ${line(tally(st.flatMap((g) => g.areas)))}`,
+      `حسب مجموعة الموهبة: ${line(tally(st.flatMap((g) => g.groups.map((id) => (GROUP_BY_ID[id] || {}).name || id))))}`,
       `حسب الصف: ${line(tally(st.map((g) => gradeBase(g.grade))))}`,
       `المسار المقترح: ${line(tally(st.flatMap(pathsOf)))}`,
       `حالة المراجعة: ${line(tally(st.map((g) => g.review.status)))}`,
@@ -383,6 +592,7 @@
 
   /* Restore admin session on load */
   (async () => {
-    try { const d = await api("GET", "/session"); if (d.admin) enterBoard(); } catch (e) {}
+    routeFromHash();
+    try { const d = await api("GET", "/session"); if (d.admin && location.hash === "#board") enterBoard(); else if (d.admin) { isAdmin = true; $("tabs").hidden = false; $("open-board").parentElement.hidden = true; await loadAll(); startLive(); } } catch (e) {}
   })();
 })();

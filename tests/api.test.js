@@ -103,11 +103,79 @@ server.listen(0, async () => {
     await t('حد الإرسال المتكرر من نفس الجهاز', async () => {
       const h = { 'X-Forwarded-For': '5.5.5.5' };
       let last;
-      for (let i = 0; i < 7; i++) last = await post('/nominations', { teacher: 'معلم ' + i, students: [{ name: 'طالب رقم ' + i }] }, h);
+      for (let i = 0; i < 21; i++) last = await post('/nominations', { teacher: 'معلم ' + i, students: [{ name: 'طالب رقم ' + i }] }, h);
       assert.equal(last.status, 429);
     });
+
+    /* ===== مسار الطالب ===== */
+    const disc = (b, h = {}) => post('/disclosures', { name: 'خالد سعد محمد العتيبي', grade: 'أول ثانوي', section: '2', talents: [{ name: 'البرمجة', level: 3 }, { name: 'التعليق الصوتي', level: 1 }], distinct: 'أبرمج ألعابًا صغيرة وأنشرها لأصحابي', achievement: 'المركز الثاني في هاكاثون المدرسة', link: 'github.com/khaled', consent: true, ...b }, { 'X-Forwarded-For': '7.7.7.7', ...h });
+    await t('الطالب يرسل إفصاحه بدون دخول', async () => {
+      const r = await disc({}); assert.equal(r.status, 200); assert.deepEqual(await r.json(), { ok: true });
+    });
+    await t('الخادم يرفض الإفصاح غير المكتمل أو غير الصالح', async () => {
+      const cases = [{ name: 'خالد سعد' }, { grade: 'رابع' }, { section: '3' }, { talents: [] }, { talents: [{ name: 'البرمجة', level: 1 }, { name: 'الرسم والتلوين', level: 1 }, { name: 'السباحة', level: 1 }, { name: 'الشطرنج', level: 1 }] },
+        { talents: [{ name: 'موهبة وهمية', level: 1 }] }, { talents: [{ name: 'البرمجة', level: 5 }] }, { distinct: 'قصير' }, { link: 'javascript:alert(1)' }, { consent: false }];
+      for (const c of cases) assert.equal((await disc({ name: 'طالب اختبار رفض البيانات', ...c })).status, 400, JSON.stringify(c));
+    });
+    await t('نفس الطالب لا يرسل مرتين (حتى مع اختلاف الهمزات والمسافات)', async () => {
+      const r = await disc({ name: 'خالِد  سعد محمد العتيبى' }); assert.equal(r.status, 409);
+    });
+    await t('الحقل المخفي يتجاهل البوت', async () => {
+      const r = await disc({ name: 'بوت بوت بوت', website: 'x' }); assert.equal(r.status, 200);
+    });
+    let c2;
+    await t('الإفصاح يظهر للمشرف منفصلًا حتى يؤكد التطابق', async () => {
+      c2 = (await post('/admin/login', { password: 'test-password-123' })).headers.get('set-cookie').split(';')[0];
+      const d = await (await fetch(B + '/admin/data', { headers: { Cookie: c2 } })).json();
+      assert.equal(d.disclosures.length, 1); assert.equal(d.disclosures[0].linked_key, null);
+      assert.equal(d.disclosures[0].link, 'https://github.com/khaled');
+      assert.ok(!d.disclosures.some((x) => x.name === 'بوت بوت بوت'));
+    });
+    await t('الزائر لا يقرأ الإفصاحات ولا يربط', async () => {
+      assert.equal((await post('/admin/links', { disclosureId: 1, studentKey: 'x' })).status, 401);
+      assert.equal((await post('/admin/links/reject', { disclosureId: 1, studentKey: 'x' })).status, 401);
+    });
+    await t('تأكيد التطابق يربط الملفين وينقل الملاحظات دون فقد', async () => {
+      const d = await (await fetch(B + '/admin/data', { headers: { Cookie: c2 } })).json();
+      const id = d.disclosures[0].id, key = d.nominations.find((n) => n.student === 'خالد سعد').student_key;
+      await fetch(B + '/admin/reviews/' + encodeURIComponent('d:' + id), { method: 'PUT', headers: { ...H, Cookie: c2 }, body: JSON.stringify({ notes: 'ملاحظة على الإفصاح' }) });
+      assert.equal((await post('/admin/links', { disclosureId: id, studentKey: key }, { Cookie: c2 })).status, 200);
+      const d2 = await (await fetch(B + '/admin/data', { headers: { Cookie: c2 } })).json();
+      assert.equal(d2.disclosures[0].linked_key, key);
+      const rv = d2.reviews.find((r) => r.student_key === key);
+      assert.match(rv.notes, /مقابلة الأحد/); assert.match(rv.notes, /ملاحظة على الإفصاح/);
+      assert.ok(!d2.reviews.some((r) => r.student_key === 'd:' + id));
+      assert.equal(d2.nominations.filter((n) => n.student_key === key).length, 2); // ترشيحات المعلمين كما هي
+    });
+    await t('رفض التطابق يُحفظ، وفك الربط يعيد الملفين منفصلين', async () => {
+      const r = await disc({ name: 'سعود ناصر عبدالله الحربي', grade: 'ثالث ثانوي', section: '1', talents: [{ name: 'كرة القدم', level: 2 }] }, { 'X-Forwarded-For': '7.7.7.8' });
+      assert.equal(r.status, 200);
+      let d = await (await fetch(B + '/admin/data', { headers: { Cookie: c2 } })).json();
+      const s = d.disclosures.find((x) => x.name.startsWith('سعود'));
+      await post('/admin/links/reject', { disclosureId: s.id, studentKey: 'سعود ناصر|ثالث' }, { Cookie: c2 });
+      d = await (await fetch(B + '/admin/data', { headers: { Cookie: c2 } })).json();
+      assert.ok(d.rejections.includes(`${s.id}|سعود ناصر|ثالث`));
+      const k = d.disclosures.find((x) => x.linked_key);
+      await fetch(B + '/admin/links/' + k.id, { method: 'DELETE', headers: { ...H, Cookie: c2 } });
+      d = await (await fetch(B + '/admin/data', { headers: { Cookie: c2 } })).json();
+      assert.equal(d.disclosures.find((x) => x.id === k.id).linked_key, null);
+      await post('/admin/links', { disclosureId: k.id, studentKey: d.nominations.find((n) => n.student === 'خالد سعد').student_key }, { Cookie: c2 });
+    });
+    await t('Excel فيه المصدر وورقة إفصاحات الطلاب', async () => {
+      const r = await fetch(B + '/admin/export.xlsx', { headers: { Cookie: c2 } });
+      assert.equal(r.status, 200);
+      fs.writeFileSync(path.join(dir, 'out2.xlsx'), Buffer.from(await r.arrayBuffer()));
+    });
+    await t('حذف ملف طالب إفصاح ذاتي فقط', async () => {
+      const d = await (await fetch(B + '/admin/data', { headers: { Cookie: c2 } })).json();
+      const s = d.disclosures.find((x) => x.name.startsWith('سعود'));
+      await fetch(B + '/admin/students/' + encodeURIComponent('d:' + s.id), { method: 'DELETE', headers: { ...H, Cookie: c2 } });
+      const d2 = await (await fetch(B + '/admin/data', { headers: { Cookie: c2 } })).json();
+      assert.ok(!d2.disclosures.some((x) => x.id === s.id));
+      assert.equal(d2.disclosures.length, 1);
+    });
     console.log(`\n${ok} اختبار نجح`);
-    console.log('XLSX=' + path.join(dir, 'out.xlsx'));
+    console.log('XLSX=' + path.join(dir, 'out2.xlsx'));
     server.close(); process.exit(0);
   } catch (e) { console.error('  ✗', e); server.close(); process.exit(1); }
 });
