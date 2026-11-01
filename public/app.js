@@ -149,7 +149,7 @@
     $("sbar").hidden = view !== "student";
     $("wrap").classList.toggle("wide", view === "board");
     $("tab-form").setAttribute("aria-selected", view !== "board"); $("tab-board").setAttribute("aria-selected", view === "board");
-    if (push) { const h = view === "form" ? "#teacher" : view === "student" ? "#student" : view === "board" ? "#board" : ""; if (location.hash !== h) history.replaceState(null, "", h || location.pathname); }
+    if (push && view !== "login") { const u = { home: "/", form: "/teacher", student: "/student", board: "/admin" }[view]; if (location.pathname + location.hash !== u) history.replaceState(null, "", u); }
     window.scrollTo({ top: 0 });
   }
   $("go-teacher").addEventListener("click", () => show("form"));
@@ -159,10 +159,11 @@
   $("tab-board").addEventListener("click", () => show("board"));
   $("l-back").addEventListener("click", () => show("home"));
   function routeFromHash() {
-    const h = location.hash;
-    if (h === "#teacher") show("form", false);
-    else if (h === "#student") { show("student", false); renderStep(); }
-    else if (h !== "#board") show("home", false);
+    const h = location.hash, p = location.pathname.replace(/\/$/, "");
+    if (h === "#teacher" || p === "/teacher") show("form", h === "#teacher");
+    else if (h === "#student" || p === "/student") { show("student", h === "#student"); renderStep(); }
+    else if (h === "#board" || p === "/admin") { show("login", false); }
+    else show("home", false);
   }
   window.addEventListener("hashchange", routeFromHash);
 
@@ -593,6 +594,6 @@
   /* Restore admin session on load */
   (async () => {
     routeFromHash();
-    try { const d = await api("GET", "/session"); if (d.admin && location.hash === "#board") enterBoard(); else if (d.admin) { isAdmin = true; $("tabs").hidden = false; $("open-board").parentElement.hidden = true; await loadAll(); startLive(); } } catch (e) {}
+    try { const d = await api("GET", "/session"); if (d.admin && (location.hash === "#board" || location.pathname.startsWith("/admin"))) enterBoard(); else if (d.admin) { isAdmin = true; $("tabs").hidden = false; $("open-board").parentElement.hidden = true; await loadAll(); startLive(); } } catch (e) {}
   })();
 })();

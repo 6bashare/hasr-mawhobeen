@@ -560,6 +560,36 @@ function sendFile(req, res, file, cache) {
   }
   return true;
 }
+/* معاينة الرابط (واتساب وغيره): لكل رابط صورته وعنوانه */
+const PAGE_META = {
+  '/': { title: 'حصر الطلاب الموهوبين – ثانوية الإمام الشاطبي', desc: 'ترشيحات المعلمين وإفصاح الطلاب عن مواهبهم في مكان واحد. برنامج رعاية الموهوبين 1448هـ.', img: 'og.jpg' },
+  '/teacher': { title: 'رشّح طالبًا موهوبًا – ثانوية الإمام الشاطبي', desc: 'استمارة ترشيح المعلمين للطلاب الموهوبين، من جوالك في دقيقة.', img: 'og-teacher.jpg' },
+  '/student': { title: 'موهبتي تستحق الاكتشاف ✨', desc: 'عرّفنا بموهبتك بنفسك في ثلاث خطوات بسيطة. لطلاب ثانوية الإمام الشاطبي.', img: 'og-student.jpg' },
+};
+const OG_VERSION = '2';
+function sendIndex(req, res, pathname) {
+  const key = pathname.replace(/\/$/, '') || '/';
+  const m = PAGE_META[key] || PAGE_META['/'];
+  const proto = CONFIG.trustProxy && req.headers['x-forwarded-proto'] ? String(req.headers['x-forwarded-proto']).split(',')[0] : (CONFIG.secureCookies ? 'https' : 'http');
+  const host = String(req.headers.host || 'hasr-mawhobeen.onrender.com').replace(/[^\w.:-]/g, '');
+  const origin = `${proto}://${host}`;
+  const url = origin + (key === '/' ? '/' : key);
+  const img = `${origin}/${m.img}?v=${OG_VERSION}`;
+  const attr = (v) => v.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  let html = fs.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8');
+  html = html
+    .replace(/<title>[^<]*<\/title>/, `<title>${attr(m.title)}</title>`)
+    .replace(/(<meta name="description" content=")[^"]*/, `$1${attr(m.desc)}`)
+    .replace(/(<meta property="og:title" content=")[^"]*/, `$1${attr(m.title)}`)
+    .replace(/(<meta property="og:description" content=")[^"]*/, `$1${attr(m.desc)}`)
+    .replace(/(<meta property="og:url" content=")[^"]*/, `$1${attr(url)}`)
+    .replace(/(<meta property="og:image" content=")[^"]*/, `$1${attr(img)}`)
+    .replace(/(<meta name="twitter:image" content=")[^"]*/, `$1${attr(img)}`);
+  res.statusCode = 200;
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.end(req.method === 'HEAD' ? undefined : html);
+}
 function securityHeaders(res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'same-origin');
@@ -623,7 +653,7 @@ async function handle(req, res) {
   }
 
   if (req.method !== 'GET' && req.method !== 'HEAD') { res.statusCode = 405; return res.end(); }
-  if (pathname === '/' || pathname === '/admin' || pathname === '/admin/' || pathname === '/teacher' || pathname === '/student') return void sendFile(req, res, path.join(PUBLIC_DIR, 'index.html'), 'no-cache');
+  if (/^\/(admin|teacher|student)?\/?$/.test(pathname)) return void sendIndex(req, res, pathname);
   const safe = path.normalize(pathname).replace(/^(\.\.[/\\])+/, '');
   const f = path.join(PUBLIC_DIR, safe);
   if (f.startsWith(PUBLIC_DIR + path.sep) && sendFile(req, res, f, 'no-cache')) return;
